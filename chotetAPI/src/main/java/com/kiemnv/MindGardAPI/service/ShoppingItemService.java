@@ -88,6 +88,10 @@ public class ShoppingItemService {
         ShoppingItem item = shoppingItemRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Shopping item not found"));
         ShoppingList list = item.getShoppingList();
+        
+        // Explicitly remove from the collection to avoid Hibernate merge issues
+        list.getItems().remove(item);
+        
         shoppingItemRepository.delete(item);
         updateListTotals(list);
     }

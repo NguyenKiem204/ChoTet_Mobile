@@ -9,23 +9,23 @@ class ShoppingHistoryPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Lịch sử mua sắm'),
-        bottom: const TabBar(
-          indicatorColor: AppColors.tetRed,
-          labelColor: AppColors.tetRed,
-          unselectedLabelColor: AppColors.midGrey,
-          tabs: [
-            Tab(text: 'Tất cả'),
-            Tab(text: 'Đã xong'),
-            Tab(text: 'Kế hoạch'),
-          ],
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Lịch sử mua sắm'),
+          bottom: const TabBar(
+            indicatorColor: AppColors.tetRed,
+            labelColor: AppColors.tetRed,
+            unselectedLabelColor: AppColors.midGrey,
+            tabs: [
+              Tab(text: 'Tất cả'),
+              Tab(text: 'Đã xong'),
+              Tab(text: 'Kế hoạch'),
+            ],
+          ),
         ),
-      ),
-      body: DefaultTabController(
-        length: 3,
-        child: Column(
+        body: Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(AppSpacing.m),

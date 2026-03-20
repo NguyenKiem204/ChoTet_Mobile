@@ -161,7 +161,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              '+ SỬ DỤNG DANH MỤC MẪU TẾT',
+              ' SỬ DỤNG DANH MỤC MẪU TẾT',
               style: GoogleFonts.outfit(
                 fontWeight: FontWeight.w900,
                 fontSize: 14,

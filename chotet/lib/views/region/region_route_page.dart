@@ -251,8 +251,12 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        if (isSelected)
-                          const Icon(Icons.stars, color: AppColors.tetRed, size: 8),
+                        if (groupedByDate[DateTime(date.year, date.month, date.day)]?.isNotEmpty ?? false)
+                          Icon(
+                            Icons.stars, 
+                            color: isSelected ? AppColors.tetRed : AppColors.vibrantGold, 
+                            size: 8
+                          ),
                       ],
                     ),
                   ),
@@ -436,6 +440,7 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
             ),
           );
         },
+        color: item.isExtra ? const Color(0xFFFFFDE7) : Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: AppSpacing.s),
         child: Row(
           children: [
@@ -464,19 +469,34 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
                     item.name,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      decoration: item.isPurchased ? TextDecoration.lineThrough : null,
-                      color: item.isPurchased ? AppColors.midGrey : AppColors.charcoal,
+                      color: item.isPurchased ? AppColors.midGrey.withValues(alpha: 0.6) : AppColors.charcoal,
                     ),
                   ),
-                  Text(
-                    item.isPurchased 
-                        ? (item.actualPrice != null ? CurrencyFormatter.format(item.actualPrice!) : 'Đã mua')
-                        : CurrencyFormatter.format(item.estimatedPrice),
-                    style: TextStyle(
-                      color: AppColors.tetRed,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (item.isPurchased) ...[
+                        Text(
+                          CurrencyFormatter.format(item.estimatedPrice),
+                          style: TextStyle(
+                            color: AppColors.midGrey.withValues(alpha: 0.5),
+                            decoration: TextDecoration.lineThrough,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      Text(
+                        item.isPurchased 
+                            ? (item.actualPrice != null ? CurrencyFormatter.format(item.actualPrice!) : 'Đã mua')
+                            : CurrencyFormatter.format(item.estimatedPrice),
+                        style: TextStyle(
+                          color: AppColors.tetRed,
+                          fontWeight: FontWeight.bold,
+                          fontSize: item.isPurchased ? 14 : 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

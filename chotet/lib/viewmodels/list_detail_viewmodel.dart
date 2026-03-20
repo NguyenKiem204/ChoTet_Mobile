@@ -21,7 +21,15 @@ class ListDetailViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   
-  ListDetailViewModel(this._listId, this._homeViewModel, this._shoppingService);
+  ListDetailViewModel(this._listId, this._homeViewModel, this._shoppingService) {
+    _homeViewModel.addListener(notifyListeners);
+  }
+
+  @override
+  void dispose() {
+    _homeViewModel.removeListener(notifyListeners);
+    super.dispose();
+  }
 
   void setFilter(ItemFilter filter) {
     _currentFilter = filter;
@@ -50,7 +58,9 @@ class ListDetailViewModel extends ChangeNotifier {
 
   Future<void> deleteItem(String itemId) async {
     try {
-      await _homeViewModel.deleteItemFromList(_listId, itemId);
+      // Don't await here so notifyListeners happens immediately (optimistic)
+      // HomeViewModel.deleteItemFromList already does its own optimistic update
+      _homeViewModel.deleteItemFromList(_listId, itemId);
       notifyListeners();
     } catch (e) {
       _error = ErrorUtils.getErrorMessage(e);

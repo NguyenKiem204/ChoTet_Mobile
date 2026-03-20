@@ -157,14 +157,25 @@ class HomeViewModel extends ChangeNotifier {
     final intItemId = int.tryParse(itemId);
     if (intListId == null || intItemId == null) return;
 
-    await _shoppingService.deleteItem(intListId, intItemId);
-    
-    // Update local state
+    // Optimistically update local state
     final listIndex = _lists.indexWhere((l) => l.id == listId);
+    ShoppingList? originalList;
     if (listIndex != -1) {
-      final list = _lists[listIndex];
-      final newItems = list.items.where((i) => i.id != itemId).toList();
-      _lists[listIndex] = list.copyWith(items: newItems);
+      originalList = _lists[listIndex];
+      final newItems = originalList.items.where((i) => i.id != itemId).toList();
+      _lists[listIndex] = originalList.copyWith(items: newItems);
+      notifyListeners();
+    }
+
+    try {
+      await _shoppingService.deleteItem(intListId, intItemId);
+    } catch (e) {
+      // Revert if API fails
+      if (listIndex != -1 && originalList != null) {
+        _lists[listIndex] = originalList;
+        notifyListeners();
+      }
+      _error = e.toString();
       notifyListeners();
     }
   }

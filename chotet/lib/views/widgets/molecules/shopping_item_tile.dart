@@ -25,7 +25,7 @@ class ShoppingItemTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.m),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: item.isExtra ? const Color(0xFFFFFDE7) : Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(

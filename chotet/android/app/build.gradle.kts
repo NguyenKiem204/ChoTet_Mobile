@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -17,7 +19,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        jvmTarget = "17"
     }
 
     defaultConfig {
@@ -32,7 +34,7 @@ android {
 
         // Load environment variables from .env file
         val envFile = project.rootProject.file("../.env")
-        val envProperties = java.util.Properties()
+        val envProperties = Properties()
         if (envFile.exists()) {
             envFile.inputStream().use { envProperties.load(it) }
         }
