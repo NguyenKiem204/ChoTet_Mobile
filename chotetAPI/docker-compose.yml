@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: chotet-db
+    environment:
+      POSTGRES_DB: chotet
+      POSTGRES_USER: chotet
+      POSTGRES_PASSWORD: chotet
+    ports:
+      - "5433:5432"
+    volumes:
+      - chotet_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chotet -d chotet"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chotet-api
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/chotet
+      SPRING_DATASOURCE_USERNAME: chotet
+      SPRING_DATASOURCE_PASSWORD: chotet
+      APP_JWT_SECRET_KEY: ${APP_JWT_SECRET_KEY}
+      APP_OAUTH2_GOOGLE_CLIENT_IDS: ${APP_OAUTH2_GOOGLE_CLIENT_IDS:-${APP_OAUTH2_GOOGLE_CLIENT_ID}}
+      FACEBOOK_CLIENT_ID: ${APP_OAUTH2_FACEBOOK_APP_ID}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+
+volumes:
+  chotet_db:

@@ -1,0 +1,149 @@
+package com.kiemnv.MindGardAPI.controller;
+
+import com.kiemnv.MindGardAPI.dto.request.LoginRequest;
+import com.kiemnv.MindGardAPI.dto.request.RefreshTokenRequest;
+import com.kiemnv.MindGardAPI.dto.request.RegisterRequest;
+import com.kiemnv.MindGardAPI.dto.request.OAuth2Request;
+import com.kiemnv.MindGardAPI.dto.response.ApiResponse;
+import com.kiemnv.MindGardAPI.dto.response.AuthResponse;
+import com.kiemnv.MindGardAPI.entity.User;
+import com.kiemnv.MindGardAPI.service.AuthService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Auth", description = "Authentication & token lifecycle")
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/login")
+    @Operation(summary = "Login", description = "Authenticate by username/password. Returns accessToken and sets refresh token cookie.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Login successful",
+            content = @Content(schema = @Schema(implementation = com.kiemnv.MindGardAPI.dto.response.ApiResponse.class)))
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request,
+                                                           HttpServletResponse response) {
+        AuthResponse authResponse = authService.login(request, response);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Login successful"));
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register", description = "Create a new user account. Returns accessToken and sets refresh token cookie.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Registration successful",
+            content = @Content(schema = @Schema(implementation = com.kiemnv.MindGardAPI.dto.response.ApiResponse.class)))
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request,
+                                                              HttpServletResponse response) {
+        AuthResponse authResponse = authService.register(request, response);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Registration successful"));
+    }
+
+    @PostMapping("/oauth2/google")
+    @Operation(summary = "Login with Google", description = "Login or register using Google ID token")
+    public ResponseEntity<ApiResponse<AuthResponse>> googleLogin(@Valid @RequestBody OAuth2Request request,
+                                                                 HttpServletResponse response) {
+        AuthResponse authResponse = authService.googleLogin(request.getToken(), response);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Google login successful"));
+    }
+
+    @PostMapping("/oauth2/facebook")
+    @Operation(summary = "Login with Facebook", description = "Login or register using Facebook access token")
+    public ResponseEntity<ApiResponse<AuthResponse>> facebookLogin(@Valid @RequestBody OAuth2Request request,
+                                                                 HttpServletResponse response) {
+        AuthResponse authResponse = authService.facebookLogin(request.getToken(), response);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Facebook login successful"));
+    }
+
+    @PostMapping("/refresh")
+    @Operation(summary = "Refresh access token", description = "Rotate refresh token from Http Only cookie OR request body, and return a new access token.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Token refreshed successfully")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(HttpServletRequest request,
+                                                                  HttpServletResponse response,
+                                                                  @RequestBody(required = false) RefreshTokenRequest bodyRequest) {
+        String refreshToken = null;
+        
+        // 1. Try to get from body (Mobile preferred)
+        if (bodyRequest != null && bodyRequest.getRefreshToken() != null) {
+            refreshToken = bodyRequest.getRefreshToken();
+        }
+        
+        // 2. Try to get from cookie (Web preferred)
+        if (refreshToken == null && request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+    
+        if (refreshToken == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Refresh token not found", 400));
+        }
+    
+        AuthResponse authResponse = authService.refreshToken(refreshToken, response);
+        return ResponseEntity.ok(ApiResponse.success(authResponse, "Token refreshed successfully"));
+    }
+
+    @PostMapping("/logout")
+    @Operation(summary = "Logout (revoke refresh token)", description = "Revoke a refresh token in DB. If you use refresh cookie flow, call /refresh to rotate and then revoke the current token.")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logout successful")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success(null, "Logout successful"));
+    }
+
+    @PostMapping("/logout-all")
+    @Operation(summary = "Logout all devices", description = "Revoke all refresh tokens for the current user.")
+    @SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Logged out from all devices")
+    public ResponseEntity<ApiResponse<Void>> logoutAll(Authentication authentication) {
+        authService.logoutAll(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(null, "Logged out from all devices"));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get current user", description = "Get user info from the current access token.")
+    @SecurityRequirement(name = "bearerAuth")
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User info returned")
+    public ResponseEntity<ApiResponse<AuthResponse.UserInfo>> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(ApiResponse.error("User not authenticated", 401));
+        }
+
+        // Safe way to get username regardless of principal type
+        String username = authentication.getName();
+        User user = (User) authService.getUserByUsername(username);
+        
+        AuthResponse.UserInfo userInfo = AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .roles(user.getRoles().stream()
+                        .map(role -> "ROLE_" + role.name())
+                        .collect(java.util.stream.Collectors.toSet()))
+                .lastLogin(user.getLastLogin() != null ? user.getLastLogin().toString() : null)
+                .avatarUrl(user.getAvatarUrl())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(userInfo, "Thông tin người dùng được lấy thành công"));
+    }
+
+}
