@@ -94,6 +94,7 @@ class HomeViewModel extends ChangeNotifier {
         lastName: u.lastName,
         avatarUrl: u.avatarUrl,
         imageUrl: u.imageUrl,
+        nickname: u.nickname,
       )).toList(),
       items: dto.items.map(_mapItemDtoToEntity).toList(),
     );
@@ -119,6 +120,7 @@ class HomeViewModel extends ChangeNotifier {
         lastName: dto.purchasedBy!.lastName,
         avatarUrl: dto.purchasedBy!.avatarUrl,
         imageUrl: dto.purchasedBy!.imageUrl,
+        nickname: dto.purchasedBy!.nickname,
       ) : null,
     );
   }

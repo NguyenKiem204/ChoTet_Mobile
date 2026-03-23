@@ -23,6 +23,15 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.tetRed,
         elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/bg_auth_header.png'),
+              fit: BoxFit.cover,
+              opacity: 0.15,
+            ),
+          ),
+        ),
         title: const Text(
           'Sắm Tết 2026',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -77,6 +86,7 @@ class HomePage extends StatelessWidget {
             ),
           );
         },
+        heroTag: 'home_fab',
         backgroundColor: AppColors.tetRed,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add_shopping_cart_rounded, size: 28),

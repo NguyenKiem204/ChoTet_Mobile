@@ -22,14 +22,14 @@ class PriceComparisonPage extends StatelessWidget {
       builder: (context, viewModel, child) {
         return Scaffold(
           backgroundColor: AppColors.offWhite,
-          appBar: AppBar(
-            title: const Text('Sổ tay khảo giá'),
-            actions: [
-              IconButton(icon: const Icon(Icons.add), onPressed: () => _showAddItemDialog(context, viewModel)),
-            ],
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showAddItemDialog(context, viewModel),
+            heroTag: 'price_comparison_fab',
+            backgroundColor: AppColors.tetRed,
+            child: const Icon(Icons.add, color: Colors.white),
           ),
           body: viewModel.isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: AppColors.tetRed))
               : viewModel.items.isEmpty
                   ? Center(child: Text('Chưa có mặt hàng nào được khảo giá!', style: theme.textTheme.titleMedium?.copyWith(color: AppColors.midGrey)))
                   : ListView.builder(

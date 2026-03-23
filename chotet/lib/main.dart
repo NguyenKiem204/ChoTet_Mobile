@@ -10,8 +10,12 @@ import 'package:chotet/viewmodels/home_viewmodel.dart';
 import 'package:chotet/viewmodels/comparison_viewmodel.dart';
 import 'package:chotet/views/main_shell.dart';
 import 'package:chotet/views/auth/login_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('vi', null);
+  
   final apiClient = ApiClient();
   final authService = AuthService(apiClient);
   final priceBookService = PriceBookService(apiClient);

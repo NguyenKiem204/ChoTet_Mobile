@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../../themes/design_system.dart';
 import '../widgets/atoms/tet_card.dart';
 import '../widgets/atoms/tet_progress_bar.dart';
 import '../../utils/currency_formatter.dart';
+import '../../viewmodels/home_viewmodel.dart';
+import '../../domain/entities/shopping_list.dart';
+import '../list_detail/list_detail_page.dart';
 
 class ShoppingHistoryPage extends StatelessWidget {
   const ShoppingHistoryPage({super.key});
@@ -12,12 +18,32 @@ class ShoppingHistoryPage extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: AppColors.offWhite,
         appBar: AppBar(
           title: const Text('Lịch sử mua sắm'),
+          backgroundColor: AppColors.tetRed,
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/bg_auth_header.png'),
+                fit: BoxFit.cover,
+                opacity: 0.15,
+              ),
+            ),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          titleTextStyle: const TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
           bottom: const TabBar(
-            indicatorColor: AppColors.tetRed,
-            labelColor: AppColors.tetRed,
-            unselectedLabelColor: AppColors.midGrey,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicatorWeight: 3,
+            labelStyle: TextStyle(fontWeight: FontWeight.bold),
             tabs: [
               Tab(text: 'Tất cả'),
               Tab(text: 'Đã xong'),
@@ -25,174 +51,211 @@ class ShoppingHistoryPage extends StatelessWidget {
             ],
           ),
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              child: TextField(
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: 'Tìm kiếm lịch sử...',
-                  filled: true,
-                  fillColor: Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.l),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                children: [
-                  _buildSectionHeader(context, 'Tháng 1, 2025'),
-                  _buildHistoryCard(
-                    context,
-                    title: 'Đồ Tết đầy đủ',
-                    date: '25 Tháng 1, 2025',
-                    spent: CurrencyFormatter.format(1820000),
-                    budget: CurrencyFormatter.format(2000000),
-                    progress: 0.91,
-                    status: 'TRONG NGÂN SÁCH',
-                    isOverBudget: false,
-                  ),
-                  _buildHistoryCard(
-                    context,
-                    title: 'Giỏ quà biếu',
-                    date: '10 Tháng 1, 2025',
-                    spent: CurrencyFormatter.format(480000),
-                    budget: CurrencyFormatter.format(500000),
-                    progress: 0.96,
-                    status: 'TRONG NGÂN SÁCH',
-                    isOverBudget: false,
-                  ),
-                  _buildHistoryCard(
-                    context,
-                    title: 'Trang trí & Hoa',
-                    date: '05 Tháng 1, 2025',
-                    spent: CurrencyFormatter.format(1250000),
-                    budget: CurrencyFormatter.format(1000000),
-                    progress: 1.0,
-                    status: 'VƯỢT NGÂN SÁCH',
-                    isOverBudget: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
+        body: Consumer<HomeViewModel>(
+          builder: (context, viewModel, child) {
+            if (viewModel.isLoading) {
+              return const Center(child: CircularProgressIndicator(color: AppColors.tetRed));
+            }
+
+            final allLists = viewModel.lists;
+            if (allLists.isEmpty) {
+              return _buildEmptyState();
+            }
+
+            return TabBarView(
+              children: [
+                _buildListView(context, allLists), // Tất cả
+                _buildListView(context, allLists.where((l) => l.status == 'COMPLETED' || l.progress >= 1.0).toList()), // Đã xong
+                _buildListView(context, allLists.where((l) => l.status != 'COMPLETED' && l.progress < 1.0).toList()), // Kế hoạch
+              ],
+            );
+          },
         ),
+      ),
+    );
+  }
+
+  Widget _buildListView(BuildContext context, List<ShoppingList> lists) {
+    if (lists.isEmpty) {
+      return const Center(child: Text('Không có danh sách nào.', style: TextStyle(color: AppColors.midGrey)));
+    }
+
+    // Sort by date descending
+    final sortedLists = List<ShoppingList>.from(lists)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    // Group by month/year
+    final Map<String, List<ShoppingList>> groups = {};
+    for (var list in sortedLists) {
+      final monthYear = DateFormat('MMMM, y', 'vi').format(list.date);
+      final key = monthYear[0].toUpperCase() + monthYear.substring(1);
+      groups.putIfAbsent(key, () => []).add(list);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => context.read<HomeViewModel>().fetchLists(),
+      color: AppColors.tetRed,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+        itemCount: groups.length,
+        itemBuilder: (context, index) {
+          final title = groups.keys.elementAt(index);
+          final items = groups[title]!;
+          
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSectionHeader(context, title),
+              ...items.map((list) => _buildHistoryCard(context, list)),
+              if (index == groups.length - 1) const SizedBox(height: AppSpacing.xl),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+      padding: const EdgeInsets.only(top: AppSpacing.l, bottom: AppSpacing.s),
       child: Text(
         title,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+        style: GoogleFonts.outfit(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: AppColors.midGrey,
+        ),
       ),
     );
   }
 
-  Widget _buildHistoryCard(
-    BuildContext context, {
-    required String title,
-    required String date,
-    required String spent,
-    required String budget,
-    required double progress,
-    required String status,
-    required bool isOverBudget,
-  }) {
+  Widget _buildHistoryCard(BuildContext context, ShoppingList list) {
     final theme = Theme.of(context);
+    final isOverBudget = list.isOverBudget;
     final statusColor = isOverBudget ? AppColors.danger : Colors.green;
+    final progress = list.progress;
+    final statusLabel = isOverBudget ? 'VƯỢT NGÂN SÁCH' : 'TRONG NGÂN SÁCH';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.m),
       child: TetCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ListDetailPage(list: list),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.titleMedium),
-                    Text(date, style: theme.textTheme.bodySmall),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            list.name, 
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(list.date), 
+                            style: theme.textTheme.bodySmall?.copyWith(color: AppColors.midGrey),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildStatusChip(statusLabel, statusColor),
                   ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.m),
-                  ),
-                  child: Text(
-                    status,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                const SizedBox(height: AppSpacing.m),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          CurrencyFormatter.format(list.totalActual),
+                          style: TextStyle(
+                            color: isOverBudget ? AppColors.tetRed : AppColors.darkSurface,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          ' / ${CurrencyFormatter.format(list.budget)}',
+                          style: const TextStyle(
+                            color: AppColors.midGrey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.m),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                RichText(
-                  text: TextSpan(
-                    style: theme.textTheme.bodySmall,
-                    children: [
-                      const TextSpan(text: 'Đã chi: '),
-                      TextSpan(
-                        text: spent,
-                        style: TextStyle(color: isOverBudget ? AppColors.tetRed : Colors.green.shade700, fontWeight: FontWeight.bold),
+                    Text(
+                      '${(progress * 100).toInt()}%',
+                      style: TextStyle(
+                        color: isOverBudget ? AppColors.danger : AppColors.midGrey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
-                    ],
-                  ),
-                ),
-                Text('Hạn mức: $budget', style: theme.textTheme.bodySmall),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.s),
-            TetProgressBar(progress: progress, isOverBudget: isOverBudget),
-            const SizedBox(height: AppSpacing.m),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.receipt_long, size: 18),
-                    label: const Text('Xem chi tiết'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.darkSurface,
-                      side: BorderSide(color: Colors.grey.shade200),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.m),
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.tetRed.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(AppRadius.m),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.share_outlined, color: AppColors.tetRed),
-                    onPressed: () {},
-                  ),
+                const SizedBox(height: AppSpacing.s),
+                TetProgressBar(
+                  progress: progress, 
+                  isOverBudget: isOverBudget,
                 ),
               ],
             ),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.s),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 0.5),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_outlined, size: 64, color: AppColors.midGrey.withValues(alpha: 0.2)),
+          const SizedBox(height: AppSpacing.m),
+          const Text('Chưa có lịch sử mua sắm nào.', style: TextStyle(color: AppColors.midGrey)),
+        ],
       ),
     );
   }

@@ -145,6 +145,7 @@ public class ShoppingListService {
                                 .username(user.getUsername())
                                 .firstName(user.getFirstName())
                                 .lastName(user.getLastName())
+                                .nickname(user.getNickname())
                                 .avatarUrl(user.getAvatarUrl())
                                 .imageUrl(user.getImageUrl())
                                 .build())

@@ -76,6 +76,15 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
           appBar: AppBar(
             backgroundColor: AppColors.tetRed,
             elevation: 0,
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/bg_auth_header.png'),
+                  fit: BoxFit.cover,
+                  opacity: 0.15,
+                ),
+              ),
+            ),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.maybePop(context),

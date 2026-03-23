@@ -139,6 +139,7 @@ public class ShoppingItemService {
                         .username(item.getPurchasedBy().getUsername())
                         .firstName(item.getPurchasedBy().getFirstName())
                         .lastName(item.getPurchasedBy().getLastName())
+                        .nickname(item.getPurchasedBy().getNickname())
                         .avatarUrl(item.getPurchasedBy().getAvatarUrl())
                         .imageUrl(item.getPurchasedBy().getImageUrl())
                         .build() : null)

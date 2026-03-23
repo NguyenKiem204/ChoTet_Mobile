@@ -77,11 +77,22 @@ class _MainShellState extends State<MainShell> {
       appBar: (_currentIndex == 0 || _currentIndex == 1) ? null : AppBar(
         title: Text(
           _getTitle(),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: AppColors.tetRed,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/bg_auth_header.png'),
+              fit: BoxFit.cover,
+              opacity: 0.15,
+            ),
+          ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, color: AppColors.tetRed),
+            icon: const Icon(Icons.account_circle, color: Colors.white),
             onPressed: _handleProfileAction,
           ),
         ],

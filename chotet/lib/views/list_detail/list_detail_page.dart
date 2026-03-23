@@ -141,6 +141,7 @@ class ListDetailPage extends StatelessWidget {
                   );
                 }
               },
+              heroTag: 'list_detail_fab',
               backgroundColor: AppColors.tetRed,
               shape: const CircleBorder(),
               child: const Icon(Icons.add, color: Colors.white),
