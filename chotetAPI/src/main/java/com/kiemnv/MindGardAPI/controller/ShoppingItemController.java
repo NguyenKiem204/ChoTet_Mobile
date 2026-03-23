@@ -1,10 +1,12 @@
 package com.kiemnv.MindGardAPI.controller;
 
 import com.kiemnv.MindGardAPI.dto.ShoppingDTOs.ShoppingItemDto;
+import com.kiemnv.MindGardAPI.entity.User;
 import com.kiemnv.MindGardAPI.service.ShoppingItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -23,12 +25,11 @@ public class ShoppingItemController {
 
     @PutMapping("/{itemId}")
     public ResponseEntity<ShoppingItemDto> updateItem(
-            @RequestHeader(value = "user-id", required = false) Long userId,
+            @AuthenticationPrincipal User user,
             @PathVariable Long listId,
             @PathVariable Long itemId,
             @RequestBody ShoppingItemDto dto) {
-        // Technically listId is in the path for logical grouping, but itemId uniquely identifies the item
-        return ResponseEntity.ok(shoppingItemService.updateItem(itemId, dto, userId));
+        return ResponseEntity.ok(shoppingItemService.updateItem(itemId, dto, user.getId()));
     }
 
     @DeleteMapping("/{itemId}")
@@ -39,3 +40,4 @@ public class ShoppingItemController {
         return ResponseEntity.noContent().build();
     }
 }
+

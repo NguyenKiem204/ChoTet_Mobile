@@ -32,29 +32,35 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(ApiResponse.<Map<String, String>>builder()
                         .success(false)
-                        .message("Validation failed")
+                        .message("Dữ liệu không hợp lệ")
                         .data(errors)
                         .status(HttpStatus.BAD_REQUEST.value())
                         .timestamp(java.time.LocalDateTime.now().toString())
                         .build());
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Invalid username or password", HttpStatus.UNAUTHORIZED.value()));
+                .body(ApiResponse.error("Tên đăng nhập hoặc mật khẩu không đúng", HttpStatus.UNAUTHORIZED.value()));
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error("Authentication failed", HttpStatus.UNAUTHORIZED.value()));
+                .body(ApiResponse.error("Xác thực thất bại", HttpStatus.UNAUTHORIZED.value()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Access denied", HttpStatus.FORBIDDEN.value()));
+                .body(ApiResponse.error("Không có quyền truy cập", HttpStatus.FORBIDDEN.value()));
     }
 
     @ExceptionHandler(TokenException.class)
@@ -93,13 +99,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
         log.error("Runtime exception occurred", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Internal server error", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                .body(ApiResponse.error("Lỗi hệ thống nội bộ: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected exception occurred", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR.value()));
+                .body(ApiResponse.error("Đã xảy ra lỗi không mong muốn", HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 }

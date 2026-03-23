@@ -9,6 +9,7 @@ import com.kiemnv.MindGardAPI.entity.Role;
 import com.kiemnv.MindGardAPI.entity.User;
 import com.kiemnv.MindGardAPI.entity.UserStatus;
 import com.kiemnv.MindGardAPI.exception.PendingApprovalException;
+import com.kiemnv.MindGardAPI.exception.ResourceNotFoundException;
 import com.kiemnv.MindGardAPI.exception.TokenException;
 import com.kiemnv.MindGardAPI.exception.UserAccountStatusException;
 import com.kiemnv.MindGardAPI.exception.UserAlreadyExistsException;
@@ -60,7 +61,7 @@ public class AuthService {
 
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
     }
 
     @Transactional
@@ -216,7 +217,7 @@ public class AuthService {
         }
 
         RefreshToken storedToken = refreshTokenRepository.findByToken(oldRefreshToken)
-                .orElseThrow(() -> new TokenException("Invalid refresh token"));
+                .orElseThrow(() -> new TokenException("Phiên đăng nhập không hợp lệ"));
 
         User user = storedToken.getUser();
         HttpServletRequest currentRequest = getCurrentRequest();
@@ -232,16 +233,16 @@ public class AuthService {
 
         if (!storedToken.isValid()) {
             refreshTokenRepository.revokeToken(oldRefreshToken);
-            throw new TokenException("Refresh token is expired or revoked");
+            throw new TokenException("Phiên đăng nhập đã hết hạn hoặc bị thu hồi");
         }
 
 
         if (user.getStatus() == UserStatus.PENDING_APPROVAL) {
             refreshTokenRepository.revokeToken(oldRefreshToken);
-            throw new PendingApprovalException("Account is pending approval. Please wait for admin approval.");
+            throw new PendingApprovalException("Tài khoản đang chờ duyệt. Vui lòng đợi quản trị viên duyệt.");
         } else if (user.getStatus() != UserStatus.ACTIVE) {
             refreshTokenRepository.revokeToken(oldRefreshToken);
-            throw new UserAccountStatusException("Your account is " + user.getStatus().name().toLowerCase() + ". Please contact support.");
+            throw new UserAccountStatusException("Tài khoản của bạn đang bị " + user.getStatus().name().toLowerCase() + ". Vui lòng liên hệ hỗ trợ.");
         }
 
         String newAccessToken = jwtService.generateAccessToken(user);
@@ -264,7 +265,7 @@ public class AuthService {
     @Transactional
     public void logoutAll(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
         refreshTokenRepository.revokeAllUserTokens(user);
     }
 

@@ -7,6 +7,7 @@ import com.kiemnv.MindGardAPI.entity.ShoppingList;
 import com.kiemnv.MindGardAPI.repository.PriceBookRepository;
 import com.kiemnv.MindGardAPI.repository.ShoppingItemRepository;
 import com.kiemnv.MindGardAPI.repository.ShoppingListRepository;
+import com.kiemnv.MindGardAPI.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,7 @@ public class ReceiptScannerService {
     @Transactional
     public ScanResponse scanAndProcessReceipt(Long listId, MultipartFile file) {
         ShoppingList currentList = shoppingListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("Shopping list not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
         Long userId = currentList.getUser().getId();
 
         try {
@@ -139,7 +140,7 @@ public class ReceiptScannerService {
 
         } catch (Exception e) {
             log.error("Error processing receipt", e);
-            throw new RuntimeException("Error processing receipt: " + e.getMessage());
+            throw new RuntimeException("Lỗi khi xử lý hóa đơn: " + e.getMessage());
         }
     }
 

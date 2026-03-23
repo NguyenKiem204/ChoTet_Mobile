@@ -2,13 +2,18 @@ package com.kiemnv.MindGardAPI.controller;
 
 import com.kiemnv.MindGardAPI.dto.ShoppingDTOs.ShoppingListDto;
 import com.kiemnv.MindGardAPI.dto.request.ShareListRequest;
+import com.kiemnv.MindGardAPI.entity.User;
 import com.kiemnv.MindGardAPI.service.ShoppingListService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
+import com.kiemnv.MindGardAPI.dto.response.ApiResponse;
+import com.kiemnv.MindGardAPI.service.CloudinaryService;
 
 @RestController
 @RequestMapping("/api/v1/shopping-lists")
@@ -16,12 +21,11 @@ import java.util.List;
 public class ShoppingListController {
 
     private final ShoppingListService shoppingListService;
+    private final CloudinaryService cloudinaryService;
 
-    // TODO: In real implementation, extract userId from Authentication context (JWT)
-    // For now, accepting it as a header or param for simple testing
     @GetMapping
-    public ResponseEntity<List<ShoppingListDto>> getUserShoppingLists(@RequestHeader("user-id") Long userId) {
-        return ResponseEntity.ok(shoppingListService.getShoppingListsByUserId(userId));
+    public ResponseEntity<List<ShoppingListDto>> getUserShoppingLists(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(shoppingListService.getShoppingListsByUserId(user.getId()));
     }
 
     @GetMapping("/{id}")
@@ -31,9 +35,9 @@ public class ShoppingListController {
 
     @PostMapping
     public ResponseEntity<ShoppingListDto> createShoppingList(
-            @RequestHeader("user-id") Long userId,
+            @AuthenticationPrincipal User user,
             @RequestBody ShoppingListDto dto) {
-        return new ResponseEntity<>(shoppingListService.createShoppingList(userId, dto), HttpStatus.CREATED);
+        return new ResponseEntity<>(shoppingListService.createShoppingList(user.getId(), dto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
@@ -61,5 +65,12 @@ public class ShoppingListController {
             @PathVariable Long id,
             @PathVariable Long userId) {
         return ResponseEntity.ok(shoppingListService.unshareListWithUser(id, userId));
+    }
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<ApiResponse<String>> uploadImage(
+            @RequestParam("file") MultipartFile file) {
+        String url = cloudinaryService.uploadImage(file, "shopping_lists");
+        return ResponseEntity.ok(ApiResponse.success(url, "Image uploaded successfully"));
     }
 }

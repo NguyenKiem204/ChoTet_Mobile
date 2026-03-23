@@ -8,6 +8,7 @@ import com.kiemnv.MindGardAPI.entity.User;
 import com.kiemnv.MindGardAPI.repository.ShoppingItemRepository;
 import com.kiemnv.MindGardAPI.repository.ShoppingListRepository;
 import com.kiemnv.MindGardAPI.repository.UserRepository;
+import com.kiemnv.MindGardAPI.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class ShoppingItemService {
     @Transactional
     public ShoppingItemDto addItemToList(Long listId, ShoppingItemDto dto) {
         ShoppingList list = shoppingListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("Shopping list not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
 
         ShoppingItem item = ShoppingItem.builder()
                 .shoppingList(list)
@@ -52,7 +53,7 @@ public class ShoppingItemService {
     @Transactional
     public ShoppingItemDto updateItem(Long id, ShoppingItemDto dto, Long actingUserId) {
         ShoppingItem item = shoppingItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Shopping item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm"));
 
         if (dto.getName() != null) item.setName(dto.getName());
         if (dto.getQuantity() != null) item.setQuantity(dto.getQuantity());
@@ -66,7 +67,7 @@ public class ShoppingItemService {
             
             if (dto.getIsPurchased() && !wasPurchased && actingUserId != null) {
                 User user = userRepository.findById(actingUserId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
                 item.setPurchasedBy(user);
             } else if (!dto.getIsPurchased()) {
                 item.setPurchasedBy(null);
@@ -86,7 +87,7 @@ public class ShoppingItemService {
     @Transactional
     public void deleteItem(Long id) {
         ShoppingItem item = shoppingItemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Shopping item not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy sản phẩm"));
         ShoppingList list = item.getShoppingList();
         
         // Explicitly remove from the collection to avoid Hibernate merge issues

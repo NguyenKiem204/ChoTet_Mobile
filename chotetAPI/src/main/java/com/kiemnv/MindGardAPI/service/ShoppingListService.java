@@ -22,6 +22,7 @@ public class ShoppingListService {
 
     private final ShoppingListRepository shoppingListRepository;
     private final UserRepository userRepository;
+    private final ShoppingItemService shoppingItemService;
 
     @Transactional(readOnly = true)
     public List<ShoppingListDto> getShoppingListsByUserId(Long userId) {
@@ -40,7 +41,7 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListDto createShoppingList(Long userId, ShoppingListDto dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         ShoppingList entity = ShoppingList.builder()
                 .user(user)
@@ -75,7 +76,7 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListDto updateShoppingList(Long id, ShoppingListDto dto) {
         ShoppingList entity = shoppingListRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Shopping list not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
 
         if (dto.getName() != null) entity.setName(dto.getName());
         if (dto.getBudget() != null) entity.setBudget(dto.getBudget());
@@ -94,14 +95,14 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListDto shareListWithUser(Long listId, String usernameOrEmail) {
         ShoppingList list = shoppingListRepository.findById(listId)
-                .orElseThrow(() -> new ResourceNotFoundException("Shopping list not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
 
         User user = userRepository.findByUsername(usernameOrEmail)
                 .or(() -> userRepository.findByEmail(usernameOrEmail))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username or email: " + usernameOrEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng với email hoặc tên đăng nhập: " + usernameOrEmail));
 
         if (list.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Cannot share list with yourself");
+            throw new IllegalArgumentException("Bạn không thể tự chia sẻ danh sách cho chính mình");
         }
 
         list.getSharedUsers().add(user);
@@ -111,35 +112,19 @@ public class ShoppingListService {
     @Transactional
     public ShoppingListDto unshareListWithUser(Long listId, Long userId) {
         ShoppingList list = shoppingListRepository.findById(listId)
-                .orElseThrow(() -> new RuntimeException("Shopping list not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
 
         list.getSharedUsers().remove(user);
         return mapToDto(shoppingListRepository.save(list));
     }
 
     private ShoppingListDto mapToDto(ShoppingList entity) {
-        List<ShoppingItemDto> itemDtos = entity.getItems().stream().map(item -> 
-                ShoppingItemDto.builder()
-                        .id(item.getId())
-                        .listId(item.getShoppingList().getId())
-                        .name(item.getName())
-                        .quantity(item.getQuantity())
-                        .unit(item.getUnit())
-                        .estimatedPrice(item.getEstimatedPrice())
-                        .actualPrice(item.getActualPrice())
-                        .isPurchased(item.getIsPurchased())
-                        .isExtra(item.getIsExtra())
-                        .imageUrl(item.getImageUrl())
-                        .category(item.getCategory())
-                        .scheduledDate(item.getScheduledDate())
-                        .note(item.getNote())
-                        .createdAt(item.getCreatedAt())
-                        .updatedAt(item.getUpdatedAt())
-                        .build()
-        ).collect(Collectors.toList());
+        List<ShoppingItemDto> itemDtos = entity.getItems().stream()
+                .map(shoppingItemService::mapToDto)
+                .collect(Collectors.toList());
 
         return ShoppingListDto.builder()
                 .id(entity.getId())
