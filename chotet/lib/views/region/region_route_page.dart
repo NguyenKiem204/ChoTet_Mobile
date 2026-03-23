@@ -498,6 +498,19 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
                       ),
                     ],
                   ),
+                  if (item.isPurchased && item.purchasedBy != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        'Đã mua bởi: ${item.purchasedBy!.displayName}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppColors.tetRed.withValues(alpha: 0.7),
+                          fontStyle: FontStyle.italic,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),

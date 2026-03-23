@@ -18,9 +18,10 @@ public class ShoppingItemController {
 
     @PostMapping
     public ResponseEntity<ShoppingItemDto> addItem(
+            @AuthenticationPrincipal User user,
             @PathVariable Long listId,
             @RequestBody ShoppingItemDto dto) {
-        return new ResponseEntity<>(shoppingItemService.addItemToList(listId, dto), HttpStatus.CREATED);
+        return new ResponseEntity<>(shoppingItemService.addItemToList(listId, dto, user.getId()), HttpStatus.CREATED);
     }
 
     @PutMapping("/{itemId}")

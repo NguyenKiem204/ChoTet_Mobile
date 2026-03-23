@@ -1,189 +1,107 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../themes/design_system.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../widgets/atoms/tet_card.dart';
-import '../widgets/atoms/tet_progress_bar.dart';
-import '../widgets/atoms/tet_button.dart';
-import '../summary/trip_summary_page.dart';
-import '../history/shopping_history_page.dart';
 import '../../utils/currency_formatter.dart';
+import '../history/shopping_history_page.dart';
 
 class BudgetDetailPage extends StatelessWidget {
   const BudgetDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ngân sách chi tiết'),
-        actions: [
-          IconButton(icon: const Icon(Icons.more_vert), onPressed: () {}),
-        ],
-      ),
+      backgroundColor: AppColors.offWhite,
       body: Consumer<HomeViewModel>(
         builder: (context, viewModel, child) {
           final stats = viewModel.categoryStats;
+          final availableYears = viewModel.availableYears;
           final isUnderBudget = viewModel.totalRemaining >= 0;
 
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            children: [
-              // Main Budget Card
-              TetCard(
-                color: AppColors.tetRed,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Số dư còn lại', style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            borderRadius: BorderRadius.circular(AppRadius.m),
+          return CustomScrollView(
+            slivers: [
+              // Year Selector
+              SliverToBoxAdapter(
+                child: Container(
+                  height: 60,
+                  color: Colors.white,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 10),
+                    itemCount: availableYears.length,
+                    itemBuilder: (context, index) {
+                      final year = availableYears[index];
+                      final isSelected = year == viewModel.selectedYear;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: AppSpacing.s),
+                        child: ChoiceChip(
+                          label: Text('Năm $year', style: TextStyle(
+                            color: isSelected ? Colors.white : AppColors.charcoal,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          )),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) viewModel.selectedYear = year;
+                          },
+                          selectedColor: AppColors.tetRed,
+                          backgroundColor: AppColors.lightGrey.withValues(alpha: 0.2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: isSelected ? AppColors.tetRed : Colors.transparent),
                           ),
-                          child: Text(
-                            DateFormat('MMMM, y').format(DateTime.now()), 
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70)
-                          ),
+                          showCheckmark: false,
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.s),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: CurrencyFormatter.format(viewModel.totalRemaining),
-                            style: theme.textTheme.displayLarge?.copyWith(color: Colors.white, fontSize: 32),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildBudgetStat(context, 'TỔNG NGÂN SÁCH', CurrencyFormatter.format(viewModel.totalBudget)),
-                        _buildBudgetStat(context, 'THỰC CHI', CurrencyFormatter.format(viewModel.totalActual)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.m),
-
-              // Status Alert
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.m),
-                decoration: BoxDecoration(
-                  color: (isUnderBudget ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.l),
-                  border: Border.all(color: (isUnderBudget ? Colors.green : Colors.red).withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isUnderBudget ? Icons.trending_down : Icons.trending_up, 
-                        color: isUnderBudget ? Colors.green : Colors.red, 
-                        size: 20
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            isUnderBudget 
-                                ? 'Bạn đang chi tiêu dưới mức ngân sách ${CurrencyFormatter.format(viewModel.totalRemaining)}'
-                                : 'Bạn đã chi quá ngân sách ${CurrencyFormatter.format(viewModel.totalRemaining.abs())}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold, 
-                              color: isUnderBudget ? Colors.green.shade800 : Colors.red.shade800
-                            ),
-                          ),
-                          Text(
-                            isUnderBudget 
-                                ? 'Tốt lắm! Chi tiêu của bạn đang được kiểm soát hiệu quả.'
-                                : 'Hãy cân nhắc cắt giảm chi tiêu ở một số hạng mục.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: isUnderBudget ? Colors.green.shade700 : Colors.red.shade700
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-
-              Text('Phân bổ theo hạng mục', style: theme.textTheme.titleMedium),
-              const SizedBox(height: AppSpacing.m),
-
-              if (stats.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Text('Chưa có dữ liệu chi tiêu.', style: theme.textTheme.bodyMedium?.copyWith(color: AppColors.midGrey)),
+                      );
+                    },
                   ),
-                )
-              else
-                ...stats.entries.map((entry) {
-                  final category = entry.key;
-                  final categoryData = entry.value;
-                  final progress = categoryData.estimated == 0 ? 0.0 : categoryData.actual / categoryData.estimated;
-                  
-                  return _buildCategoryProgress(
-                    context, 
-                    category, 
-                    progress.clamp(0.0, 1.0), 
-                    '${CurrencyFormatter.format(categoryData.actual)} / ${CurrencyFormatter.format(categoryData.estimated)}', 
-                    _getIconForCategory(category)
-                  );
-                }),
-              
-              const SizedBox(height: AppSpacing.m),
-              TetButton(
-                label: 'Xem lịch sử mua sắm',
-                variant: TetButtonVariant.outline,
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ShoppingHistoryPage()),
-                  );
-                },
+                ),
               ),
-              
-              const SizedBox(height: AppSpacing.xl),
-              
-              ElevatedButton.icon(
-                onPressed: () {
-                   Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const TripSummaryPage()),
-                  );
-                },
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('Hoàn thành & Xem tổng kết'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.tetRed,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+
+              SliverPadding(
+                padding: const EdgeInsets.all(AppSpacing.m),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // Main Summary Card
+                    _buildOverviewCard(context, viewModel),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Over Budget Alert
+                    if (!isUnderBudget)
+                      _buildAlert(
+                        context, 
+                        'Vượt ngân sách ${CurrencyFormatter.format(viewModel.totalRemaining.abs())}', 
+                        'Hãy cân nhắc tối ưu hóa các chi phí không cần thiết.',
+                        Icons.warning_amber_rounded,
+                        AppColors.danger,
+                      ),
+                    
+                    const SizedBox(height: AppSpacing.l),
+                    
+                    // Charts Section
+                    _buildSectionHeader('Phân bổ chi tiêu'),
+                    const SizedBox(height: AppSpacing.m),
+                    _buildChartsSection(context, stats),
+                    
+                    const SizedBox(height: AppSpacing.l),
+                    
+                    const SizedBox(height: AppSpacing.l),
+                    
+                    
+                    // Contributors (Member Stats)
+                    if (viewModel.memberStats.isNotEmpty) ...[
+                      _buildSectionHeader('Thành viên đóng góp'),
+                      const SizedBox(height: AppSpacing.m),
+                      _buildMemberStats(context, viewModel.memberStats),
+                      const SizedBox(height: AppSpacing.l),
+                    ],
+
+                    // History Link
+                    _buildHistoryButton(context),
+                    const SizedBox(height: AppSpacing.xl),
+                  ]),
                 ),
               ),
             ],
@@ -193,62 +111,295 @@ class BudgetDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBudgetStat(BuildContext context, String label, String value) {
+  Widget _buildOverviewCard(BuildContext context, HomeViewModel viewModel) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.tetRed, Color(0xFFD32F2F)],
+        ),
+        image: const DecorationImage(
+          image: AssetImage('assets/images/bg_auth_header.png'),
+          fit: BoxFit.cover,
+          opacity: 0.2,
+        ),
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.tetRed.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TỔNG CHI TIÊU ${viewModel.selectedYear}',
+            style: GoogleFonts.outfit(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            CurrencyFormatter.format(viewModel.totalActual),
+            style: GoogleFonts.outfit(
+              color: Colors.white,
+              fontSize: 36,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              _buildCompactStat('Ngân sách', CurrencyFormatter.format(viewModel.totalBudget)),
+              const Spacer(),
+              _buildCompactStat(
+                viewModel.totalRemaining >= 0 ? 'Còn lại' : 'Vượt mức',
+                CurrencyFormatter.format(viewModel.totalRemaining.abs()),
+                isPositive: viewModel.totalRemaining >= 0,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactStat(String label, String value, {bool? isPositive}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white60, letterSpacing: 1.1)),
-        Text(value, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white)),
+        Text(
+          label,
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 11),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isPositive == null 
+                ? Colors.white 
+                : (isPositive ? AppColors.vibrantGold : Colors.orangeAccent),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildCategoryProgress(BuildContext context, String title, double progress, String subtitle, IconData icon) {
-    final theme = Theme.of(context);
+  Widget _buildAlert(BuildContext context, String title, String subtitle, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: AppSpacing.m),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+                Text(subtitle, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.outfit(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: AppColors.charcoal,
+      ),
+    );
+  }
+
+  Widget _buildChartsSection(BuildContext context, Map<String, ({double estimated, double actual})> stats) {
+    if (stats.isEmpty) return const SizedBox.shrink();
+
+    final data = stats.entries.toList()
+      ..sort((a, b) => b.value.actual.compareTo(a.value.actual));
+    
+    final topCategories = data.take(4).toList();
+    final colors = [AppColors.tetRed, AppColors.vibrantGold, AppColors.charcoal, AppColors.midGrey];
+
+    return TetCard(
+      child: Row(
+        children: [
+          SizedBox(
+            height: 140,
+            width: 140,
+            child: PieChart(
+              PieChartData(
+                sectionsSpace: 2,
+                centerSpaceRadius: 40,
+                sections: topCategories.asMap().entries.map((e) {
+                  return PieChartSectionData(
+                    color: colors[e.key % colors.length],
+                    value: e.value.value.actual,
+                    title: '',
+                    radius: 15,
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.m),
+          Expanded(
+            child: Column(
+              children: topCategories.asMap().entries.map((e) {
+                return _buildChartLegend(e.value.key, e.value.value.actual, colors[e.key % colors.length]);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChartLegend(String label, double value, Color color) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.m),
-      child: TetCard(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(label, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+          ),
+          Text(
+            CurrencyFormatter.format(value),
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryRow(BuildContext context, String category, ({double estimated, double actual}) data) {
+    final progress = data.estimated > 0 ? (data.actual / data.estimated) : 0.0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Column(
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: Colors.orange, size: 24),
+                Text(category, style: const TextStyle(fontWeight: FontWeight.bold)),
+                const Spacer(),
+                Text(
+                  CurrencyFormatter.format(data.actual),
+                  style: const TextStyle(color: AppColors.tetRed, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: AppSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: theme.textTheme.titleMedium?.copyWith(fontSize: 16)),
-                      Text('Đã chi $subtitle', style: theme.textTheme.bodySmall),
-                    ],
-                  ),
-                ),
-                Text('${(progress * 100).toInt()}%', style: theme.textTheme.titleMedium),
               ],
             ),
-            const SizedBox(height: AppSpacing.s),
-            TetProgressBar(progress: progress),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                backgroundColor: AppColors.lightGrey.withValues(alpha: 0.3),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress > 1.0 ? AppColors.danger : AppColors.tetRed,
+                ),
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Hạn mức: ${CurrencyFormatter.format(data.estimated)}', style: const TextStyle(fontSize: 10, color: AppColors.midGrey)),
+                Text('${(progress * 100).toInt()}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  IconData _getIconForCategory(String category) {
-    final catLower = category.toLowerCase();
-    if (catLower.contains('thịt') || catLower.contains('seafood') || catLower.contains('hải sản')) return Icons.set_meal;
-    if (catLower.contains('rau') || catLower.contains('vegetable') || catLower.contains('quả') || catLower.contains('trái cây')) return Icons.eco;
-    if (catLower.contains('trang trí') || catLower.contains('hoa')) return Icons.celebration;
-    if (catLower.contains('đồ khô') || catLower.contains('grocery')) return Icons.inventory_2;
-    if (catLower.contains('bánh') || catLower.contains('kẹo') || catLower.contains('đồ ăn vặt')) return Icons.cake;
-    if (catLower.contains('uống') || catLower.contains('rượu') || catLower.contains('bia') || catLower.contains('drink')) return Icons.local_bar;
-    return Icons.shopping_basket;
+  Widget _buildMemberStats(BuildContext context, Map<int, ({String name, int itemsCount, double totalSpent})> stats) {
+    return Column(
+      children: stats.values.map((stat) => Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.tetRed.withValues(alpha: 0.1),
+              radius: 16,
+              child: Text(stat.name.substring(0, 1).toUpperCase(), style: const TextStyle(color: AppColors.tetRed, fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(stat.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(CurrencyFormatter.format(stat.totalSpent), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text('${stat.itemsCount} món', style: const TextStyle(fontSize: 10, color: AppColors.midGrey)),
+              ],
+            ),
+          ],
+        ),
+      )).toList(),
+    );
+  }
+
+  Widget _buildHistoryButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: TextButton.icon(
+        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ShoppingHistoryPage())),
+        icon: const Icon(Icons.history, color: AppColors.tetRed),
+        label: const Text('Xem lịch sử chi tiết', style: TextStyle(color: AppColors.tetRed, fontWeight: FontWeight.bold)),
+        style: TextButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          Icon(Icons.bar_chart_outlined, size: 48, color: AppColors.midGrey.withValues(alpha: 0.2)),
+          const SizedBox(height: 16),
+          const Text('Chưa có dữ liệu cho năm này', style: TextStyle(color: AppColors.midGrey)),
+        ],
+      ),
+    );
   }
 }

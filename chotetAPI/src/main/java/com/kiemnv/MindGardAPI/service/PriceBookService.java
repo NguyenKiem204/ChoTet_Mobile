@@ -46,6 +46,43 @@ public class PriceBookService {
         return mapToDto(priceBookRepository.save(entity));
     }
 
+    @Transactional
+    public void deletePriceLog(Long id) {
+        priceBookRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteItem(String itemName) {
+        List<PriceBook> logs = priceBookRepository.findByItemNameIgnoreCaseOrderByObservedAtDesc(itemName);
+        priceBookRepository.deleteAll(logs);
+    }
+
+    @Transactional
+    public void updateItem(String oldName, String newName, String newUnit, String imageUrl) {
+        List<PriceBook> logs = priceBookRepository.findByItemNameIgnoreCaseOrderByObservedAtDesc(oldName);
+        for (PriceBook log : logs) {
+            log.setItemName(newName);
+            log.setUnit(newUnit);
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                log.setImageUrl(imageUrl);
+            }
+        }
+        priceBookRepository.saveAll(logs);
+    }
+
+    @Transactional
+    public PriceBookDto updatePriceLog(Long id, PriceBookDto dto) {
+        PriceBook entity = priceBookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Price log not found"));
+        
+        entity.setStoreName(dto.getStoreName());
+        entity.setPrice(dto.getPrice());
+        entity.setUnit(dto.getUnit());
+        if (dto.getObservedAt() != null) entity.setObservedAt(dto.getObservedAt());
+        
+        return mapToDto(priceBookRepository.save(entity));
+    }
+
     private PriceBookDto mapToDto(PriceBook entity) {
         return PriceBookDto.builder()
                 .id(entity.getId())

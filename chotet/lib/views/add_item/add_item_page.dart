@@ -16,17 +16,18 @@ class AddItemPage extends StatefulWidget {
 
 class _AddItemPageState extends State<AddItemPage> {
   final _formKey = GlobalKey<FormState>();
-  final List<String> _units = ['kg', 'g', 'bó', 'món', 'túi', 'chai'];
-  final List<String> _marketZones = ['Fresh Meat & Seafood', 'Vegetables', 'Fruits', 'Groceries', 'Snacks'];
+  final List<String> _units = ['cái', 'cây', 'kg', 'g', 'bó', 'món', 'túi', 'chai'];
+  final List<String> _marketZones = ['Thịt tươi & Hải sản', 'Rau củ', 'Trái cây', 'Bách hóa', 'Đồ ăn vặt', 'Trang trí & Hoa'];
   
   String _name = '';
   double _quantity = 1.0;
   double _price = 0;
   String _selectedUnit = 'kg';
-  String _selectedZone = 'Fresh Meat & Seafood';
+  String _selectedZone = 'Thịt tươi & Hải sản';
   late DateTime _selectedDate;
   File? _selectedImage;
   final _picker = ImagePicker();
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -79,7 +80,7 @@ class _AddItemPageState extends State<AddItemPage> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Add Item'),
+        title: const Text('Thêm món đồ'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -220,10 +221,24 @@ class _AddItemPageState extends State<AddItemPage> {
               ),
               const SizedBox(height: AppSpacing.xl),
 
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.m),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ),
               TetButton(
                 label: 'LƯU MẶT HÀNG',
                 onPressed: () {
-                  if (_name.trim().isEmpty) return;
+                  if (_name.trim().isEmpty) {
+                    setState(() {
+                      _errorMessage = 'Vui lòng nhập tên món đồ cần mua';
+                    });
+                    return;
+                  }
+                  setState(() => _errorMessage = null);
                   final newItem = ShoppingItem(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: _name.trim(),

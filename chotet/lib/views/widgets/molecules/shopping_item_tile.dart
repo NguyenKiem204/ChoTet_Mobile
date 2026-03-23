@@ -77,12 +77,16 @@ class ShoppingItemTile extends StatelessWidget {
                           style: theme.textTheme.bodySmall?.copyWith(color: AppColors.midGrey),
                         ),
                         if (item.isPurchased && item.purchasedBy != null)
-                          Text(
-                            'Đã mua bởi: ${item.purchasedBy!.displayName}',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: item.isPurchased ? const Color(0xFFAFA8A0) : AppColors.success,
-                              fontStyle: FontStyle.italic,
-                              fontSize: 10,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              'Đã mua bởi: ${item.purchasedBy!.displayName}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: AppColors.tetRed.withValues(alpha: 0.7),
+                                fontStyle: FontStyle.italic,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                       ],
@@ -92,6 +96,18 @@ class ShoppingItemTile extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
+                      if (item.isPurchased)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            'Dự kiến: ${CurrencyFormatter.format(item.estimatedPrice)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.midGrey,
+                              decoration: TextDecoration.lineThrough,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
                       Text(
                         CurrencyFormatter.format(item.isPurchased ? (item.actualPrice ?? item.estimatedPrice) : item.estimatedPrice),
                         style: TextStyle(

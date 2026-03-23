@@ -52,4 +52,51 @@ class PriceBookService {
       rethrow;
     }
   }
+
+  Future<void> deletePriceLog(String id) async {
+    try {
+      await _apiClient.dio.delete('/v1/price-book/$id');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> deleteItem(String itemName) async {
+    try {
+      await _apiClient.dio.delete('/v1/price-book/items/$itemName');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateItem(String oldName, String newName, String newUnit, String? imageUrl) async {
+    try {
+      await _apiClient.dio.put(
+        '/v1/price-book/items/$oldName',
+        queryParameters: {
+          'newName': newName,
+          'newUnit': newUnit,
+          if (imageUrl != null) 'imageUrl': imageUrl,
+        },
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<PriceBookDto> updatePriceLog(String id, PriceBookDto dto) async {
+    try {
+      final response = await _apiClient.dio.put(
+        '/v1/price-book/$id',
+        data: dto.toJson(),
+      );
+      if (response.statusCode == 200) {
+        return PriceBookDto.fromJson(response.data);
+      } else {
+        throw Exception('Failed to update price log');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

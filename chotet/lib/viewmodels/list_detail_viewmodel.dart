@@ -175,7 +175,37 @@ class ListDetailViewModel extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _error = e.toString();
+      _error = ErrorUtils.getErrorMessage(e);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> deleteList() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _homeViewModel.deleteList(_listId);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = ErrorUtils.getErrorMessage(e);
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> updateList(String name, double budget, DateTime scheduledDate, {String? imageUrl}) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _homeViewModel.updateList(_listId, name, budget, scheduledDate, imageUrl: imageUrl);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _error = ErrorUtils.getErrorMessage(e);
+      _isLoading = false;
       notifyListeners();
       rethrow;
     }

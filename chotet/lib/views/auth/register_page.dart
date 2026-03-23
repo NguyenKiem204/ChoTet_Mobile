@@ -23,11 +23,13 @@ class _RegisterScreenState extends State<RegisterPage> {
   bool _isPasswordVisible = false;
 
   void _handleRegister() async {
-    if (_usernameController.text.isEmpty || 
-        _emailController.text.isEmpty || 
-        _passwordController.text.isEmpty) {
+    if (_usernameController.text.trim().isEmpty || 
+        _emailController.text.trim().isEmpty || 
+        _passwordController.text.isEmpty ||
+        _firstNameController.text.trim().isEmpty ||
+        _lastNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng điền các trường bắt buộc')),
+        const SnackBar(content: Text('Vui lòng điền đầy đủ các thông tin'), backgroundColor: Colors.redAccent),
       );
       return;
     }
@@ -67,8 +69,8 @@ class _RegisterScreenState extends State<RegisterPage> {
         child: Column(
           children: [
             const AuthHeader(
-              title: 'Join Us!',
-              subtitle: 'Create a new account',
+              title: 'Tham gia cùng chúng tôi!',
+              subtitle: 'Tạo tài khoản mới',
             ),
             Transform.translate(
               offset: const Offset(0, -60),
@@ -111,7 +113,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                           Expanded(
                             child: _buildTextField(
                               controller: _firstNameController,
-                              label: 'First Name',
+                              label: 'Tên',
                               icon: Icons.person_outline,
                             ),
                           ),
@@ -119,7 +121,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                           Expanded(
                             child: _buildTextField(
                               controller: _lastNameController,
-                              label: 'Last Name',
+                              label: 'Họ',
                               icon: Icons.person_outline,
                             ),
                           ),
@@ -128,7 +130,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _usernameController,
-                        label: 'Username',
+                        label: 'Tên đăng nhập',
                         icon: Icons.alternate_email,
                       ),
                       const SizedBox(height: 16),
@@ -140,7 +142,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _passwordController,
-                        label: 'Password',
+                        label: 'Mật khẩu',
                         icon: Icons.lock_outline,
                         isPassword: true,
                         isPasswordVisible: _isPasswordVisible,
@@ -170,7 +172,7 @@ class _RegisterScreenState extends State<RegisterPage> {
                               child: auth.isLoading
                                   ? const CircularProgressIndicator(color: Colors.white)
                                   : Text(
-                                      'Sign Up',
+                                      'Đăng ký',
                                       style: GoogleFonts.outfit(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -185,13 +187,13 @@ class _RegisterScreenState extends State<RegisterPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Already have an account? ',
+                            'Đã có tài khoản? ',
                             style: GoogleFonts.outfit(color: Colors.grey[600]),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(context),
                             child: Text(
-                              'Sign In',
+                              'Đăng nhập',
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFFD32F2F),
                                 fontWeight: FontWeight.bold,

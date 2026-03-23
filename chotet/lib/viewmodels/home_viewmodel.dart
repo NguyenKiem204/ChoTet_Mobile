@@ -13,10 +13,30 @@ class HomeViewModel extends ChangeNotifier {
   List<ShoppingList> _lists = [];
   bool _isLoading = false;
   String? _error;
+  int _selectedYear = DateTime.now().year;
 
   List<ShoppingList> get lists => _lists;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  int get selectedYear => _selectedYear;
+
+  set selectedYear(int year) {
+    if (_selectedYear != year) {
+      _selectedYear = year;
+      notifyListeners();
+    }
+  }
+
+  List<int> get availableYears {
+    final years = _lists.map((l) => (l.scheduledDate ?? l.createdAt).year).toSet().toList();
+    if (!years.contains(DateTime.now().year)) {
+      years.add(DateTime.now().year);
+    }
+    years.sort((a, b) => b.compareTo(a)); // Mới nhất lên đầu
+    return years;
+  }
+
+  List<ShoppingList> get filteredLists => _lists.where((l) => (l.scheduledDate ?? l.createdAt).year == _selectedYear).toList();
 
   HomeViewModel(this._shoppingService, this._authViewModel) {
     _authViewModel.addListener(_onAuthChanged);
@@ -119,6 +139,39 @@ class HomeViewModel extends ChangeNotifier {
       final newListDto = await _shoppingService.createShoppingList(dto);
       _lists.insert(0, _mapListDtoToEntity(newListDto));
       notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateList(String id, String name, double budget, DateTime scheduledDate, {String? imageUrl}) async {
+    final intId = int.tryParse(id);
+    if (intId == null) return;
+
+    try {
+      String? finalImageUrl = imageUrl;
+      // Nếu có ảnh mới (local path), upload lên Cloudinary trước
+      if (imageUrl != null && !imageUrl.startsWith('http') && imageUrl.isNotEmpty) {
+        finalImageUrl = await _shoppingService.uploadShoppingImage(imageUrl);
+      }
+
+      final dto = ShoppingListDto(
+        id: intId,
+        name: name,
+        budget: budget,
+        scheduledDate: scheduledDate,
+        imageUrl: finalImageUrl,
+      );
+      
+      final updatedDto = await _shoppingService.updateShoppingList(intId, dto);
+      
+      // Cập nhật local state
+      final index = _lists.indexWhere((l) => l.id == id);
+      if (index != -1) {
+        _lists[index] = _mapListDtoToEntity(updatedDto);
+        notifyListeners();
+      }
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -261,14 +314,14 @@ class HomeViewModel extends ChangeNotifier {
     return null;
   }
 
-  double get totalBudget => _lists.fold(0, (sum, list) => sum + list.budget);
-  double get totalEstimated => _lists.fold(0, (sum, list) => sum + list.totalEstimated);
-  double get totalActual => _lists.fold(0, (sum, list) => sum + list.totalActual);
+  double get totalBudget => filteredLists.fold(0, (sum, list) => sum + list.budget);
+  double get totalEstimated => filteredLists.fold(0, (sum, list) => sum + list.totalEstimated);
+  double get totalActual => filteredLists.fold(0, (sum, list) => sum + list.totalActual);
   double get totalRemaining => totalBudget - totalActual;
 
   Map<String, ({double estimated, double actual})> get categoryStats {
     final stats = <String, ({double estimated, double actual})>{};
-    for (var list in _lists) {
+    for (var list in filteredLists) {
       for (var item in list.items) {
         final current = stats[item.category] ?? (estimated: 0.0, actual: 0.0);
         stats[item.category] = (
@@ -283,7 +336,7 @@ class HomeViewModel extends ChangeNotifier {
   Map<int, ({String name, int itemsCount, double totalSpent})> get memberStats {
     final stats = <int, ({String name, int itemsCount, double totalSpent})>{};
     
-    for (var list in _lists) {
+    for (var list in filteredLists) {
       for (var item in list.items) {
         if (item.isPurchased) {
           final userId = item.purchasedBy?.id ?? -1; // -1 for unknown/legacy

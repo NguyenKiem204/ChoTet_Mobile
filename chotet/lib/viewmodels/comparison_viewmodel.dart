@@ -132,4 +132,50 @@ class ComparisonViewModel extends ChangeNotifier {
     if (name.isEmpty) return;
     await addPriceLog(name, storeName, price, unit);
   }
+
+  Future<void> deletePriceLog(String id) async {
+    try {
+      await _priceBookService.deletePriceLog(id);
+      await fetchPrices();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteTrackedItem(String itemName) async {
+    try {
+      await _priceBookService.deleteItem(itemName);
+      await fetchPrices();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateTrackedItem(String oldName, String newName, String newUnit, {String? imageUrl}) async {
+    try {
+      await _priceBookService.updateItem(oldName, newName, newUnit, imageUrl);
+      await fetchPrices();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  Future<void> updatePriceLog(String id, String itemName, String storeName, double price, String unit) async {
+    try {
+      final dto = PriceBookDto(
+        itemName: itemName,
+        storeName: storeName,
+        price: price,
+        unit: unit,
+      );
+      await _priceBookService.updatePriceLog(id, dto);
+      await fetchPrices();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
 }

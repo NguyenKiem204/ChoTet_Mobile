@@ -40,10 +40,26 @@ class _LoginScreenState extends State<LoginPage> {
   }
 
   void _handleLogin() async {
+    final usernameOrEmail = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    if (usernameOrEmail.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập email hoặc tên đăng nhập'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập mật khẩu'), backgroundColor: Colors.redAccent),
+      );
+      return;
+    }
+
     final authViewModel = context.read<AuthViewModel>();
     final success = await authViewModel.login(
-      _usernameController.text.trim(),
-      _passwordController.text,
+      usernameOrEmail,
+      password,
       rememberMe: _rememberMe,
     );
 
@@ -71,8 +87,8 @@ class _LoginScreenState extends State<LoginPage> {
         child: Column(
           children: [
             const AuthHeader(
-              title: 'Welcome Back!',
-              subtitle: 'Sign in to your account',
+              title: 'Chào mừng trở lại!',
+              subtitle: 'Đăng nhập vào tài khoản của bạn',
             ),
             Transform.translate(
               offset: const Offset(0, -60),
@@ -112,13 +128,13 @@ class _LoginScreenState extends State<LoginPage> {
                       const SizedBox(height: 32),
                       _buildTextField(
                         controller: _usernameController,
-                        label: 'Enter email or username',
+                        label: 'Nhập email hoặc tên đăng nhập',
                         icon: Icons.person_outline,
                       ),
                       const SizedBox(height: 16),
                       _buildTextField(
                         controller: _passwordController,
-                        label: 'Password',
+                        label: 'Mật khẩu',
                         icon: Icons.lock_outline,
                         isPassword: true,
                         isPasswordVisible: _isPasswordVisible,
@@ -146,7 +162,7 @@ class _LoginScreenState extends State<LoginPage> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Remember me',
+                                'Ghi nhớ đăng nhập',
                                 style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey[600]),
                               ),
                             ],
@@ -154,7 +170,7 @@ class _LoginScreenState extends State<LoginPage> {
                           TextButton(
                             onPressed: () {},
                             child: Text(
-                              'Forgot Password?',
+                              'Quên mật khẩu?',
                               style: GoogleFonts.outfit(
                                 color: Colors.grey[600],
                                 fontSize: 13,
@@ -184,7 +200,7 @@ class _LoginScreenState extends State<LoginPage> {
                               child: auth.isLoading
                                   ? const CircularProgressIndicator(color: Colors.white)
                                   : Text(
-                                      'Sign In',
+                                      'Đăng nhập',
                                       style: GoogleFonts.outfit(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
@@ -196,7 +212,7 @@ class _LoginScreenState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        '-OR-',
+                        '-HOẶC-',
                         style: GoogleFonts.outfit(color: Colors.grey[400], fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 24),

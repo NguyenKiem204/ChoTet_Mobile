@@ -2,22 +2,34 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../themes/design_system.dart';
+import '../../../../domain/entities/shopping_list.dart';
 
 class AddListDialog extends StatefulWidget {
+  final ShoppingList? list;
   final Function(String name, double budget, DateTime scheduledDate, {String? imageUrl}) onAdd;
 
-  const AddListDialog({super.key, required this.onAdd});
+  const AddListDialog({super.key, required this.onAdd, this.list});
 
   @override
   State<AddListDialog> createState() => _AddListDialogState();
 }
 
 class _AddListDialogState extends State<AddListDialog> {
-  final _nameController = TextEditingController();
-  final _budgetController = TextEditingController();
-  DateTime _selectedDate = DateTime.now();
+  late TextEditingController _nameController;
+  late TextEditingController _budgetController;
+  late DateTime _selectedDate;
   File? _selectedImage;
   final _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.list?.name ?? '');
+    _budgetController = TextEditingController(
+      text: widget.list != null ? widget.list!.budget.toStringAsFixed(0) : '',
+    );
+    _selectedDate = widget.list?.scheduledDate ?? DateTime.now();
+  }
 
   @override
   void dispose() {
@@ -69,6 +81,10 @@ class _AddListDialogState extends State<AddListDialog> {
     if (name.isNotEmpty && budget > 0) {
       widget.onAdd(name, budget, _selectedDate, imageUrl: _selectedImage?.path);
       Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng nhập tên danh sách và ngân sách hợp lệ')),
+      );
     }
   }
 
@@ -107,7 +123,10 @@ class _AddListDialogState extends State<AddListDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Thêm danh sách mới', style: theme.textTheme.headlineMedium),
+                 Text(
+                  widget.list == null ? 'Thêm danh sách mới' : 'Chỉnh sửa danh sách',
+                  style: theme.textTheme.headlineMedium,
+                ),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
@@ -132,15 +151,20 @@ class _AddListDialogState extends State<AddListDialog> {
                         borderRadius: BorderRadius.circular(AppRadius.m),
                         child: Image.file(_selectedImage!, fit: BoxFit.cover),
                       )
-                    : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo_outlined, color: AppColors.tetRed, size: 32),
-                          SizedBox(height: 8),
-                          Text('Thêm ảnh minh họa', style: TextStyle(color: AppColors.tetRed, fontWeight: FontWeight.bold)),
-                          Text('(Nếu không chọn, sẽ dùng ảnh mặc định)', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        ],
-                      ),
+                    : (widget.list?.imageUrl != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.m),
+                            child: Image.network(widget.list!.imageUrl!, fit: BoxFit.cover),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, color: AppColors.tetRed, size: 32),
+                              SizedBox(height: 8),
+                              Text('Thêm ảnh minh họa', style: TextStyle(color: AppColors.tetRed, fontWeight: FontWeight.bold)),
+                              Text('(Nếu không chọn, sẽ dùng ảnh mặc định)', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                            ],
+                          )),
               ),
             ),
             const SizedBox(height: AppSpacing.l),
@@ -213,7 +237,10 @@ class _AddListDialogState extends State<AddListDialog> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.m)),
                   elevation: 0,
                 ),
-                child: const Text('Tạo danh sách', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  widget.list == null ? 'Tạo danh sách' : 'Lưu thay đổi',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],

@@ -10,7 +10,7 @@ class PriceBookDto {
 
   PriceBookDto({
     this.id,
-    required this.itemName,
+    this.itemName = '',
     required this.storeName,
     required this.unit,
     required this.price,

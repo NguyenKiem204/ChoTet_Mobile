@@ -4,9 +4,11 @@ import com.kiemnv.MindGardAPI.dto.ReceiptScannerDTOs.*;
 import com.kiemnv.MindGardAPI.entity.PriceBook;
 import com.kiemnv.MindGardAPI.entity.ShoppingItem;
 import com.kiemnv.MindGardAPI.entity.ShoppingList;
+import com.kiemnv.MindGardAPI.entity.User;
 import com.kiemnv.MindGardAPI.repository.PriceBookRepository;
 import com.kiemnv.MindGardAPI.repository.ShoppingItemRepository;
 import com.kiemnv.MindGardAPI.repository.ShoppingListRepository;
+import com.kiemnv.MindGardAPI.repository.UserRepository;
 import com.kiemnv.MindGardAPI.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,15 +33,18 @@ public class ReceiptScannerService {
     private final ShoppingItemRepository shoppingItemRepository;
     private final ShoppingListRepository shoppingListRepository;
     private final PriceBookRepository priceBookRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public ScanResponse scanAndProcessReceipt(Long listId, MultipartFile file) {
+    public ScanResponse scanAndProcessReceipt(Long listId, MultipartFile file, Long actingUserId) {
         ShoppingList currentList = shoppingListRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
         Long userId = currentList.getUser().getId();
 
+        User actingUser = userRepository.findById(actingUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng hiện tại"));
+
         try {
-            // 1. Upload image to Cloudinary (Optional - don't crash if it fails)
             String imageUrl = null;
             try {
                 imageUrl = cloudinaryService.uploadImage(file, "receipts");
@@ -47,12 +52,9 @@ public class ReceiptScannerService {
                 log.error("Cloudinary upload failed, continuing without image: {}", e.getMessage());
             }
 
-            // 2. Fetch all unpurchased items OR items purchased in the last 12 hours for matching
-            // This prevents duplicate "Extra" items if the same receipt is scanned twice.
             LocalDateTime recently = LocalDateTime.now().minusHours(12);
             List<ShoppingItem> plannedItems = shoppingItemRepository.findCandidateItemsByUserId(userId, recently);
 
-            // 3. Scan receipt with Gemini with smart matching
             ReceiptScanResult scanResult = geminiService.scanReceipt(file.getBytes(), file.getContentType(), plannedItems);
 
             List<ScannedItemUpdate> updatedItems = new ArrayList<>();
@@ -61,16 +63,12 @@ public class ReceiptScannerService {
 
             for (ScannedItem scanned : scanResult.getItems()) {
                 if (scanned.getPlannedItemId() != null) {
-                    // Match found by AI
                     Optional<ShoppingItem> match = shoppingItemRepository.findById(scanned.getPlannedItemId());
                     if (match.isPresent()) {
                         ShoppingItem item = match.get();
                         
-                        // If already purchased, don't add as extra and don't re-mark as purchased 
-                        // unless we want to allow price updates. For now, let's just skip to prevent duplicates.
                         if (item.getIsPurchased()) {
                             log.info("Item '{}' (ID: {}) already purchased, skipping duplicate update", item.getName(), item.getId());
-                            // Add to updated list so UI sees it was "handled" but don't save/increment totals
                             updatedItems.add(mapToUpdate(item));
                             continue;
                         }
@@ -78,17 +76,16 @@ public class ReceiptScannerService {
                         item.setActualPrice(scanned.getPrice());
                         item.setQuantity(scanned.getQuantity()); 
                         item.setIsPurchased(true);
+                        item.setPurchasedBy(actingUser);
                         shoppingItemRepository.save(item);
 
                         updatedItems.add(mapToUpdate(item));
                         
-                        // Also update the parent list totals if it's a different list
                         if (!item.getShoppingList().getId().equals(listId)) {
                             updateListTotals(item.getShoppingList());
                         }
                     }
                 } else {
-                    // Item not in any list, add as extra to the CURRENT list
                     ShoppingItem extra = ShoppingItem.builder()
                             .shoppingList(currentList)
                             .name(scanned.getName())
@@ -98,6 +95,7 @@ public class ReceiptScannerService {
                             .estimatedPrice(scanned.getPrice()) 
                             .isPurchased(true)
                             .isExtra(true)
+                            .purchasedBy(actingUser)
                             .scheduledDate(currentList.getScheduledDate())
                             .build();
                     

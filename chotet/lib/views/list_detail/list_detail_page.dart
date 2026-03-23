@@ -12,6 +12,7 @@ import 'package:chotet/domain/entities/shopping_item.dart';
 import 'package:chotet/views/widgets/organisms/receipt_scanner_sheet.dart';
 import 'package:chotet/views/list_detail/widgets/update_price_dialog.dart';
 import 'package:chotet/views/list_detail/widgets/share_list_dialog.dart';
+import 'package:chotet/views/home/widgets/add_list_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ListDetailPage extends StatelessWidget {
@@ -236,9 +237,37 @@ class ListDetailPage extends StatelessWidget {
                         );
                       },
                     ),
-                    IconButton(
+                    PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert, color: Colors.white, size: 22),
-                      onPressed: () {},
+                      onSelected: (value) {
+                        if (value == 'edit') {
+                          _showEditDialog(context, viewModel);
+                        } else if (value == 'delete') {
+                          _showDeleteConfirmation(context, viewModel);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, color: AppColors.tetRed, size: 20),
+                              SizedBox(width: 12),
+                              Text('Chỉnh sửa'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                              SizedBox(width: 12),
+                              Text('Xóa danh sách', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -384,6 +413,58 @@ class ListDetailPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showEditDialog(BuildContext context, ListDetailViewModel viewModel) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddListDialog(
+        list: viewModel.list,
+        onAdd: (name, budget, scheduledDate, {imageUrl}) {
+          viewModel.updateList(name, budget, scheduledDate, imageUrl: imageUrl);
+        },
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, ListDetailViewModel viewModel) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc chắn muốn xóa danh sách "${viewModel.list.name}" không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Hủy', style: TextStyle(color: AppColors.midGrey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              try {
+                // Close the dialog first
+                navigator.pop();
+                
+                await viewModel.deleteList();
+                
+                // Pop the detail page
+                navigator.pop();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Không thể xóa danh sách: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

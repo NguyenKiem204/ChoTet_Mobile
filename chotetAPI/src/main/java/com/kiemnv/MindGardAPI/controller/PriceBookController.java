@@ -30,4 +30,31 @@ public class PriceBookController {
     public ResponseEntity<PriceBookDto> addPriceLog(@RequestBody PriceBookDto dto) {
         return new ResponseEntity<>(priceBookService.addPriceLog(dto), HttpStatus.CREATED);
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PriceBookDto> updatePriceLog(@PathVariable Long id, @RequestBody PriceBookDto dto) {
+        return ResponseEntity.ok(priceBookService.updatePriceLog(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePriceLog(@PathVariable Long id) {
+        priceBookService.deletePriceLog(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/items/{itemName}")
+    public ResponseEntity<Void> deleteItem(@PathVariable String itemName) {
+        priceBookService.deleteItem(itemName);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/items/{oldName}")
+    public ResponseEntity<Void> updateItem(
+            @PathVariable String oldName,
+            @RequestParam("newName") String newName,
+            @RequestParam("newUnit") String newUnit,
+            @RequestParam(value = "imageUrl", required = false) String imageUrl) {
+        priceBookService.updateItem(oldName, newName, newUnit, imageUrl);
+        return ResponseEntity.ok().build();
+    }
 }

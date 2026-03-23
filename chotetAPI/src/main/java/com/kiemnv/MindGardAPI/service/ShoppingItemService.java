@@ -26,9 +26,14 @@ public class ShoppingItemService {
     private final UserRepository userRepository;
 
     @Transactional
-    public ShoppingItemDto addItemToList(Long listId, ShoppingItemDto dto) {
+    public ShoppingItemDto addItemToList(Long listId, ShoppingItemDto dto, Long actingUserId) {
         ShoppingList list = shoppingListRepository.findById(listId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy danh sách mua sắm"));
+
+        User actingUser = null;
+        if (actingUserId != null) {
+            actingUser = userRepository.findById(actingUserId).orElse(null);
+        }
 
         ShoppingItem item = ShoppingItem.builder()
                 .shoppingList(list)
@@ -43,6 +48,7 @@ public class ShoppingItemService {
                 .category(dto.getCategory())
                 .scheduledDate(dto.getScheduledDate())
                 .note(dto.getNote())
+                .purchasedBy(dto.getIsPurchased() != null && dto.getIsPurchased() ? actingUser : null)
                 .build();
 
         ShoppingItem saved = shoppingItemRepository.save(item);

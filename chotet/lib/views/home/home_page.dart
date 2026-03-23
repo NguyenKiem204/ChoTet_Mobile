@@ -9,6 +9,7 @@ import 'package:chotet/views/home/widgets/add_list_dialog.dart';
 import 'package:chotet/views/home/widgets/template_bottom_sheet.dart';
 import 'package:chotet/viewmodels/auth_viewmodel.dart';
 import 'package:chotet/views/auth/edit_profile_page.dart';
+import 'package:chotet/views/home/all_lists_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -189,7 +190,12 @@ class HomePage extends StatelessWidget {
         ),
         const Spacer(),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AllListsPage()),
+            );
+          },
           child: Text(
             'Xem tất cả',
             style: GoogleFonts.outfit(
