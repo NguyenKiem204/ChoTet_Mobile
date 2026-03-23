@@ -19,21 +19,34 @@ class HomeViewModel extends ChangeNotifier {
   String? get error => _error;
 
   HomeViewModel(this._shoppingService, this._authViewModel) {
+    _authViewModel.addListener(_onAuthChanged);
     if (_authViewModel.isAuthenticated) {
       fetchLists();
     }
   }
 
-  Future<void> fetchLists() async {
-    final userId = _authViewModel.user?.id;
-    if (userId == null) return;
+  void _onAuthChanged() {
+    if (!_authViewModel.isAuthenticated) {
+      _lists.clear();
+      notifyListeners();
+    } else if (_lists.isEmpty) {
+      fetchLists();
+    }
+  }
 
+  @override
+  void dispose() {
+    _authViewModel.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  Future<void> fetchLists() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final dtos = await _shoppingService.getShoppingLists(userId);
+      final dtos = await _shoppingService.getShoppingLists();
       _lists = dtos.map(_mapListDtoToEntity).toList();
       _isLoading = false;
       notifyListeners();
@@ -91,17 +104,19 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   Future<void> addNewList(String name, double budget, DateTime scheduledDate, {String? imageUrl}) async {
-    final userId = _authViewModel.user?.id;
-    if (userId == null) return;
-
     try {
+      String? finalImageUrl = imageUrl;
+      if (imageUrl != null && !imageUrl.startsWith('http')) {
+        finalImageUrl = await _shoppingService.uploadShoppingImage(imageUrl);
+      }
+
       final dto = ShoppingListDto(
         name: name,
         budget: budget,
         scheduledDate: scheduledDate,
-        imageUrl: imageUrl,
+        imageUrl: finalImageUrl,
       );
-      final newListDto = await _shoppingService.createShoppingList(userId, dto);
+      final newListDto = await _shoppingService.createShoppingList(dto);
       _lists.insert(0, _mapListDtoToEntity(newListDto));
       notifyListeners();
     } catch (e) {
@@ -124,9 +139,14 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
-  Future<ShoppingItem> addItemToList(String listId, String name, double quantity, String unit, double estimatedPrice, String category, {DateTime? scheduledDate}) async {
+  Future<ShoppingItem> addItemToList(String listId, String name, double quantity, String unit, double estimatedPrice, String category, {DateTime? scheduledDate, String? imageUrl}) async {
     final intListId = int.tryParse(listId);
     if (intListId == null) throw Exception('Invalid list ID');
+
+    String? finalImageUrl = imageUrl;
+    if (imageUrl != null && !imageUrl.startsWith('http')) {
+      finalImageUrl = await _shoppingService.uploadShoppingImage(imageUrl);
+    }
 
     final dto = ShoppingItemDto(
       name: name,
@@ -135,6 +155,7 @@ class HomeViewModel extends ChangeNotifier {
       estimatedPrice: estimatedPrice,
       category: category,
       scheduledDate: scheduledDate,
+      imageUrl: finalImageUrl,
     );
     
     final resultDto = await _shoppingService.addItemToList(intListId, dto);
@@ -216,10 +237,7 @@ class HomeViewModel extends ChangeNotifier {
         category: category ?? targetItem.category,
       );
       
-      final userId = _authViewModel.user?.id;
-      if (userId == null) throw Exception('User not authenticated');
-
-      final resultDto = await _shoppingService.updateItem(intListId, intItemId, updatedDto, userId);
+      final resultDto = await _shoppingService.updateItem(intListId, intItemId, updatedDto);
       
       final listIndex = _lists.indexOf(parentList);
       final itemIndex = parentList.items.indexOf(targetItem);

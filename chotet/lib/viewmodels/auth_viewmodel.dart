@@ -113,7 +113,7 @@ class AuthViewModel extends ChangeNotifier {
       return true;
     } catch (e) {
       _isLoading = false;
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }
@@ -139,7 +139,7 @@ class AuthViewModel extends ChangeNotifier {
       return true;
     } catch (e) {
       _isLoading = false;
-      _error = e.toString();
+      _error = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }

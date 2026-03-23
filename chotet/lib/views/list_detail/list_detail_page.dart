@@ -136,6 +136,7 @@ class ListDetailPage extends StatelessWidget {
                     result.estimatedPrice,
                     result.category,
                     scheduledDate: result.scheduledDate,
+                    imageUrl: result.imageUrl,
                   );
                 }
               },

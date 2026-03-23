@@ -46,9 +46,9 @@ class ListDetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> addItem(String name, double quantity, String unit, double estimatedPrice, String category, {DateTime? scheduledDate}) async {
+  Future<void> addItem(String name, double quantity, String unit, double estimatedPrice, String category, {DateTime? scheduledDate, String? imageUrl}) async {
     try {
-      await _homeViewModel.addItemToList(_listId, name, quantity, unit, estimatedPrice, category, scheduledDate: scheduledDate);
+      await _homeViewModel.addItemToList(_listId, name, quantity, unit, estimatedPrice, category, scheduledDate: scheduledDate, imageUrl: imageUrl);
       notifyListeners();
     } catch (e) {
       _error = ErrorUtils.getErrorMessage(e);

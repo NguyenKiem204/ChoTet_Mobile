@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../themes/design_system.dart';
 import '../widgets/atoms/tet_button.dart';
 import '../../../domain/entities/shopping_item.dart';
@@ -23,11 +25,22 @@ class _AddItemPageState extends State<AddItemPage> {
   String _selectedUnit = 'kg';
   String _selectedZone = 'Fresh Meat & Seafood';
   late DateTime _selectedDate;
+  File? _selectedImage;
+  final _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -76,29 +89,37 @@ class _AddItemPageState extends State<AddItemPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image Picker Placeholder
-              Center(
-                child: Container(
-                  width: double.infinity,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(AppRadius.l),
-                    border: Border.all(
-                      color: AppColors.tetRed.withValues(alpha: 0.2),
-                      style: BorderStyle.solid,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.add_a_photo, color: AppColors.tetRed, size: 40),
-                      const SizedBox(height: AppSpacing.s),
-                      Text(
-                        '+ Thêm ảnh',
-                        style: theme.textTheme.labelLarge?.copyWith(color: AppColors.tetRed),
+              // Image Picker
+              GestureDetector(
+                onTap: _pickImage,
+                child: Center(
+                  child: Container(
+                    width: double.infinity,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: AppColors.tetRed.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                      border: Border.all(
+                        color: AppColors.tetRed.withValues(alpha: 0.2),
+                        style: BorderStyle.solid,
                       ),
-                    ],
+                    ),
+                    child: _selectedImage != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(AppRadius.l),
+                            child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.add_a_photo, color: AppColors.tetRed, size: 40),
+                              const SizedBox(height: AppSpacing.s),
+                              Text(
+                                '+ Thêm ảnh',
+                                style: theme.textTheme.labelLarge?.copyWith(color: AppColors.tetRed),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
@@ -211,6 +232,7 @@ class _AddItemPageState extends State<AddItemPage> {
                     estimatedPrice: _price,
                     category: _selectedZone,
                     scheduledDate: _selectedDate,
+                    imageUrl: _selectedImage?.path,
                   );
                   Navigator.pop(context, newItem);
                 },

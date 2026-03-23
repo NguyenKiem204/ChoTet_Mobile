@@ -9,12 +9,9 @@ class ShoppingService {
 
   // --- Shopping List Operations ---
 
-  Future<List<ShoppingListDto>> getShoppingLists(int userId) async {
+  Future<List<ShoppingListDto>> getShoppingLists() async {
     try {
-      final response = await _apiClient.dio.get(
-        '/v1/shopping-lists',
-        options: _userIdHeader(userId),
-      );
+      final response = await _apiClient.dio.get('/v1/shopping-lists');
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => ShoppingListDto.fromJson(json)).toList();
@@ -37,12 +34,11 @@ class ShoppingService {
     }
   }
 
-  Future<ShoppingListDto> createShoppingList(int userId, ShoppingListDto dto) async {
+  Future<ShoppingListDto> createShoppingList(ShoppingListDto dto) async {
     try {
       final response = await _apiClient.dio.post(
         '/v1/shopping-lists',
         data: dto.toJson(),
-        options: _userIdHeader(userId),
       );
       if (response.statusCode == 201) {
         return ShoppingListDto.fromJson(response.data);
@@ -93,12 +89,11 @@ class ShoppingService {
     }
   }
 
-  Future<ShoppingItemDto> updateItem(int listId, int itemId, ShoppingItemDto dto, int userId) async {
+  Future<ShoppingItemDto> updateItem(int listId, int itemId, ShoppingItemDto dto) async {
     try {
       final response = await _apiClient.dio.put(
         '/v1/shopping-lists/$listId/items/$itemId',
         data: dto.toJson(),
-        options: _userIdHeader(userId),
       );
       if (response.statusCode == 200) {
         return ShoppingItemDto.fromJson(response.data);
@@ -170,9 +165,25 @@ class ShoppingService {
     }
   }
 
-  // Helper for current mock/temp userId handling in backend
-  // Note: Backend TODO says it will use JWT later.
-  Options _userIdHeader(int userId) {
-    return Options(headers: {'user-id': userId.toString()});
+  Future<String> uploadShoppingImage(String filePath) async {
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      });
+
+      final response = await _apiClient.dio.post(
+        '/v1/shopping-lists/upload-image',
+        data: formData,
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as String;
+      }
+      throw Exception('Failed to upload image');
+    } catch (e) {
+      rethrow;
+    }
   }
+
 }

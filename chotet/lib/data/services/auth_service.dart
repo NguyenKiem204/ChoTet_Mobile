@@ -19,14 +19,18 @@ class AuthService {
         final data = response.data['data'];
         return AuthResponse.fromJson(data);
       } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          message: response.data['message'] ?? 'Login failed',
-        );
+        throw Exception(response.data['message'] ?? 'Login failed');
       }
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data != null) {
+        throw Exception(e.response?.data['message'] ?? 'Login failed');
+      }
+      throw Exception('Network error or server is down');
     } catch (e) {
-      rethrow;
+      if (e.toString().startsWith('Exception: ')) {
+        rethrow;
+      }
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -41,14 +45,19 @@ class AuthService {
         final data = response.data['data'];
         return AuthResponse.fromJson(data);
       } else {
-        throw DioException(
-          requestOptions: response.requestOptions,
-          response: response,
-          message: response.data['message'] ?? 'Registration failed',
-        );
+        throw Exception(response.data['message'] ?? 'Registration failed');
       }
+    } on DioException catch (e) {
+      if (e.response != null && e.response?.data != null) {
+        throw Exception(e.response?.data['message'] ?? 'Registration failed');
+      }
+      throw Exception('Network error or server is down');
     } catch (e) {
-      rethrow;
+      // In case it's an Exception we threw above
+      if (e.toString().startsWith('Exception: ')) {
+        rethrow;
+      }
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
