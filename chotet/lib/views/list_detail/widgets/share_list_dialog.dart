@@ -5,8 +5,14 @@ import 'package:chotet/utils/error_utils.dart';
 
 class ShareListDialog extends StatefulWidget {
   final ListDetailViewModel viewModel;
+  /// ID của người dùng đang đăng nhập (String vì ShoppingList.userId là String?)
+  final String? currentUserId;
 
-  const ShareListDialog({super.key, required this.viewModel});
+  const ShareListDialog({
+    super.key,
+    required this.viewModel,
+    this.currentUserId,
+  });
 
   @override
   State<ShareListDialog> createState() => _ShareListDialogState();
@@ -44,8 +50,19 @@ class _ShareListDialogState extends State<ShareListDialog> {
 
   @override
   Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: widget.viewModel,
+      builder: (context, _) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     final theme = Theme.of(context);
-    final sharedUsers = widget.viewModel.list.sharedUsers;
+    final list = widget.viewModel.list;
+    final sharedUsers = list.sharedUsers;
+
+    // Chỉ owner mới có quyền kick thành viên
+    final isOwner = list.isOwner(widget.currentUserId);
 
     return Container(
       padding: EdgeInsets.only(
@@ -78,33 +95,55 @@ class _ShareListDialogState extends State<ShareListDialog> {
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: AppSpacing.m),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: 'Username hoặc Email',
-                    filled: true,
-                    fillColor: AppColors.lightGrey.withValues(alpha: 0.3),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.m),
-                      borderSide: BorderSide.none,
+          // Chỉ owner mới thấy ô mời
+          if (isOwner) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: 'Username hoặc Email',
+                      filled: true,
+                      fillColor: AppColors.lightGrey.withValues(alpha: 0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.m),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
+                    onSubmitted: (_) => _handleShare(),
                   ),
-                  onSubmitted: (_) => _handleShare(),
                 ),
+                const SizedBox(width: AppSpacing.s),
+                if (_isSubmitting)
+                  const CircularProgressIndicator()
+                else
+                  ElevatedButton(
+                    onPressed: _handleShare,
+                    child: const Text('Mời'),
+                  ),
+              ],
+            ),
+          ] else ...[
+            // Member chỉ xem, không mời được
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.s),
+              decoration: BoxDecoration(
+                color: AppColors.lightGrey.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
-              const SizedBox(width: AppSpacing.s),
-              if (_isSubmitting)
-                const CircularProgressIndicator()
-              else
-                ElevatedButton(
-                  onPressed: _handleShare,
-                  child: const Text('Mời'),
-                ),
-            ],
-          ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: AppColors.midGrey),
+                  const SizedBox(width: AppSpacing.s),
+                  Text(
+                    'Chỉ chủ danh sách mới có thể mời thêm thành viên.',
+                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.midGrey),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (sharedUsers.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.xl),
             Text('Đang chia sẻ với', style: theme.textTheme.titleMedium),
@@ -115,6 +154,10 @@ class _ShareListDialogState extends State<ShareListDialog> {
               itemCount: sharedUsers.length,
               itemBuilder: (_, index) {
                 final user = sharedUsers[index];
+                // Không cho kick chính owner (phòng trường hợp backend trả về cả owner)
+                final isThisUserOwner = user.id.toString() == list.userId;
+                final canKick = isOwner && !isThisUserOwner;
+
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
@@ -122,21 +165,47 @@ class _ShareListDialogState extends State<ShareListDialog> {
                     backgroundImage: user.avatarUrl != null ? NetworkImage(user.avatarUrl!) : null,
                     child: user.avatarUrl == null ? Text(user.username[0].toUpperCase()) : null,
                   ),
-                  title: Text(user.displayName),
-                  subtitle: Text(user.username),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.person_remove, color: AppColors.danger),
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      try {
-                        await widget.viewModel.unshareList(user.id);
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('Lỗi: ${ErrorUtils.getErrorMessage(e)}'), backgroundColor: AppColors.danger),
-                        );
-                      }
-                    },
+                  title: Row(
+                    children: [
+                      Text(user.displayName),
+                      if (isThisUserOwner) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.tetRed.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Chủ',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.tetRed,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
+                  subtitle: Text(user.username),
+                  trailing: canKick
+                      ? IconButton(
+                          icon: const Icon(Icons.person_remove, color: AppColors.danger),
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await widget.viewModel.unshareList(user.id);
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Lỗi: ${ErrorUtils.getErrorMessage(e)}'),
+                                  backgroundColor: AppColors.danger,
+                                ),
+                              );
+                            }
+                          },
+                        )
+                      : null,
                 );
               },
             ),

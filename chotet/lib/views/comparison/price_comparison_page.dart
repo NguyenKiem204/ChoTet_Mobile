@@ -11,15 +11,33 @@ import 'package:chotet/utils/currency_formatter.dart';
 import 'package:chotet/viewmodels/comparison_viewmodel.dart';
 import 'package:intl/intl.dart';
 
-class PriceComparisonPage extends StatelessWidget {
+class PriceComparisonPage extends StatefulWidget {
   const PriceComparisonPage({super.key});
+
+  @override
+  State<PriceComparisonPage> createState() => _PriceComparisonPageState();
+}
+
+class _PriceComparisonPageState extends State<PriceComparisonPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Consumer<ComparisonViewModel>(
       builder: (context, viewModel, child) {
+        final filteredItems = viewModel.items.where((item) {
+          return item.name.toLowerCase().contains(_searchQuery.toLowerCase());
+        }).toList();
+
         return Scaffold(
           backgroundColor: AppColors.offWhite,
           floatingActionButton: FloatingActionButton(
@@ -28,24 +46,91 @@ class PriceComparisonPage extends StatelessWidget {
             backgroundColor: AppColors.tetRed,
             child: const Icon(Icons.add, color: Colors.white),
           ),
-          body: viewModel.isLoading
-              ? const Center(child: CircularProgressIndicator(color: AppColors.tetRed))
-              : viewModel.items.isEmpty
-                  ? Center(child: Text('Chưa có mặt hàng nào được khảo giá!', style: theme.textTheme.titleMedium?.copyWith(color: AppColors.midGrey)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(AppSpacing.m),
-                      itemCount: viewModel.items.length,
-                      itemBuilder: (context, index) {
-                        final item = viewModel.items[index];
-                        return _buildTrackedItemCard(context, item, viewModel);
-                      },
+          body: Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.m, AppSpacing.m, AppSpacing.m, AppSpacing.s),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Tìm kiếm mặt hàng...',
+                    prefixIcon:
+                        const Icon(Icons.search, color: AppColors.midGrey),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear,
+                                color: AppColors.midGrey, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 0, horizontal: AppSpacing.m),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.l),
+                      borderSide:
+                          const BorderSide(color: AppColors.tetRed, width: 1.5),
+                    ),
+                  ),
+                ),
+              ),
+              // List content
+              Expanded(
+                child: viewModel.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.tetRed))
+                    : filteredItems.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchQuery.isEmpty
+                                  ? 'Chưa có mặt hàng nào được khảo giá!'
+                                  : 'Không tìm thấy mặt hàng nào.',
+                              style: theme.textTheme.titleMedium
+                                  ?.copyWith(color: AppColors.midGrey),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.m, 0,
+                                AppSpacing.m, AppSpacing.m),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              return _buildTrackedItemCard(
+                                  context, item, viewModel);
+                            },
+                          ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildTrackedItemCard(BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
+  Widget _buildTrackedItemCard(
+      BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.l),
@@ -64,8 +149,11 @@ class PriceComparisonPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                      Text('Đơn vị tính: ${item.unit}', style: theme.textTheme.bodySmall),
+                      Text(item.name,
+                          style: theme.textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
+                      Text('Đơn vị tính: ${item.unit}',
+                          style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
@@ -79,8 +167,12 @@ class PriceComparisonPage extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Sửa mặt hàng')),
-                    const PopupMenuItem(value: 'delete', child: Text('Xóa toàn bộ', style: TextStyle(color: Colors.red))),
+                    const PopupMenuItem(
+                        value: 'edit', child: Text('Sửa mặt hàng')),
+                    const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Xóa toàn bộ',
+                            style: TextStyle(color: Colors.red))),
                   ],
                 ),
               ],
@@ -89,9 +181,11 @@ class PriceComparisonPage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Lịch sử khảo giá', style: theme.textTheme.titleSmall),
+                Text('Lịch sử khảo giá',
+                    style: theme.textTheme.titleSmall),
                 TextButton.icon(
-                  onPressed: () => _showAddPriceDialog(context, item, viewModel),
+                  onPressed: () =>
+                      _showAddPriceDialog(context, item, viewModel),
                   icon: const Icon(Icons.add_circle_outline, size: 16),
                   label: const Text('Thêm giá'),
                   style: TextButton.styleFrom(
@@ -107,7 +201,11 @@ class PriceComparisonPage extends StatelessWidget {
             if (item.priceLogs.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Text('Chưa có giá nào được lưu.', style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+                child: Text(
+                  'Chưa có giá nào được lưu.',
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(fontStyle: FontStyle.italic),
+                ),
               )
             else
               ...item.priceLogs.map((log) {
@@ -115,14 +213,21 @@ class PriceComparisonPage extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                   child: InkWell(
-                    onTap: () => _showUpdatePriceLogDialog(context, item, log, viewModel),
+                    onTap: () => _showUpdatePriceLogDialog(
+                        context, item, log, viewModel),
                     borderRadius: BorderRadius.circular(AppRadius.s),
                     child: Container(
                       padding: const EdgeInsets.all(AppSpacing.s),
                       decoration: BoxDecoration(
-                        color: isLowest ? Colors.green.withValues(alpha: 0.1) : Colors.grey.shade50,
+                        color: isLowest
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(AppRadius.s),
-                        border: isLowest ? Border.all(color: Colors.green.withValues(alpha: 0.3)) : null,
+                        border: isLowest
+                            ? Border.all(
+                                color:
+                                    Colors.green.withValues(alpha: 0.3))
+                            : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -131,8 +236,17 @@ class PriceComparisonPage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(log.storeName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                Text(DateFormat('dd/MM HH:mm').format(log.recordedAt), style: theme.textTheme.labelSmall?.copyWith(color: AppColors.midGrey, fontSize: 10)),
+                                Text(log.storeName,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                                Text(
+                                  DateFormat('dd/MM HH:mm')
+                                      .format(log.recordedAt),
+                                  style: theme.textTheme.labelSmall
+                                      ?.copyWith(
+                                          color: AppColors.midGrey,
+                                          fontSize: 10),
+                                ),
                               ],
                             ),
                           ),
@@ -141,12 +255,20 @@ class PriceComparisonPage extends StatelessWidget {
                               if (isLowest)
                                 const Padding(
                                   padding: EdgeInsets.only(right: 4.0),
-                                  child: Icon(Icons.thumb_up, color: Colors.green, size: 14),
+                                  child: Icon(Icons.thumb_up,
+                                      color: Colors.green, size: 14),
                                 ),
-                              Text(CurrencyFormatter.format(log.price), style: TextStyle(
-                                color: isLowest ? Colors.green : AppColors.darkSurface,
-                                fontWeight: isLowest ? FontWeight.bold : FontWeight.normal,
-                              )),
+                              Text(
+                                CurrencyFormatter.format(log.price),
+                                style: TextStyle(
+                                  color: isLowest
+                                      ? Colors.green
+                                      : AppColors.darkSurface,
+                                  fontWeight: isLowest
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -161,7 +283,8 @@ class PriceComparisonPage extends StatelessWidget {
     );
   }
 
-  void _showAddPriceDialog(BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
+  void _showAddPriceDialog(
+      BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -170,38 +293,47 @@ class PriceComparisonPage extends StatelessWidget {
     );
   }
 
-  void _showUpdatePriceLogDialog(BuildContext context, TrackedItem item, PriceLog log, ComparisonViewModel viewModel) {
+  void _showUpdatePriceLogDialog(BuildContext context, TrackedItem item,
+      PriceLog log, ComparisonViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UpdatePriceLogSheet(item: item, log: log, viewModel: viewModel),
+      builder: (context) =>
+          UpdatePriceLogSheet(item: item, log: log, viewModel: viewModel),
     );
   }
 
-  void _showUpdateItemDialog(BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
+  void _showUpdateItemDialog(
+      BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UpdateTrackedItemSheet(item: item, viewModel: viewModel),
+      builder: (context) =>
+          UpdateTrackedItemSheet(item: item, viewModel: viewModel),
     );
   }
 
-  void _showDeleteItemConfirmation(BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
+  void _showDeleteItemConfirmation(
+      BuildContext context, TrackedItem item, ComparisonViewModel viewModel) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Xác nhận xóa'),
-        content: Text('Bạn có chắc muốn xóa mặt hàng "${item.name}" và toàn bộ lịch sử giá của nó không?'),
+        content: Text(
+            'Bạn có chắc muốn xóa mặt hàng "${item.name}" và toàn bộ lịch sử giá của nó không?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Hủy')),
           TextButton(
             onPressed: () {
               viewModel.deleteTrackedItem(item.name);
               Navigator.pop(context);
             },
-            child: const Text('XÓA', style: TextStyle(color: Colors.red)),
+            child:
+                const Text('XÓA', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -237,7 +369,8 @@ class PriceComparisonPage extends StatelessWidget {
     );
   }
 
-  void _showAddItemDialog(BuildContext context, ComparisonViewModel viewModel) {
+  void _showAddItemDialog(
+      BuildContext context, ComparisonViewModel viewModel) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

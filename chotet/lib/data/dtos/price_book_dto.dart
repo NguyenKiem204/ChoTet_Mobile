@@ -42,6 +42,8 @@ class PriceBookDto {
     'price': price,
     'imageUrl': imageUrl,
     'sourceListId': sourceListId,
-    'observedAt': observedAt?.toIso8601String(),
+    'observedAt': observedAt != null
+        ? observedAt!.toUtc().toIso8601String().substring(0, 23)
+        : null,
   };
 }

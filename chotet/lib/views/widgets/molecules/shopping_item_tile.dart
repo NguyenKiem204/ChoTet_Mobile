@@ -8,6 +8,8 @@ class ShoppingItemTile extends StatelessWidget {
   final String? listName;
   final VoidCallback onToggle;
   final VoidCallback onTap;
+  /// ID người dùng hiện tại để hiện "Bạn" thay vì biệt danh
+  final String? currentUserId;
 
   const ShoppingItemTile({
     super.key,
@@ -15,6 +17,7 @@ class ShoppingItemTile extends StatelessWidget {
     this.listName,
     required this.onToggle,
     required this.onTap,
+    this.currentUserId,
   });
 
   @override
@@ -79,15 +82,20 @@ class ShoppingItemTile extends StatelessWidget {
                         if (item.isPurchased && item.purchasedBy != null)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              'Đã mua bởi: ${item.purchasedBy!.displayName}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: AppColors.tetRed.withValues(alpha: 0.7),
-                                fontStyle: FontStyle.italic,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            child: Builder(builder: (context) {
+                              final isSelf = currentUserId != null &&
+                                  item.purchasedBy!.id.toString() == currentUserId;
+                              final buyerLabel = isSelf ? 'Bạn' : item.purchasedBy!.displayName;
+                              return Text(
+                                'Đã mua bởi: $buyerLabel',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppColors.tetRed.withValues(alpha: 0.7),
+                                  fontStyle: FontStyle.italic,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              );
+                            }),
                           ),
                       ],
                     ),

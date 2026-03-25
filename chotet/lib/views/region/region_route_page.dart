@@ -435,6 +435,7 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
   Widget _buildShoppingItemRow(BuildContext context, HomeViewModel viewModel, ({ShoppingItem item, String listName}) entry) {
     final theme = Theme.of(context);
     final item = entry.item;
+    final currentUserId = context.read<AuthViewModel>().user?.id?.toString();
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.m),
       child: TetCard(
@@ -510,15 +511,20 @@ class _RegionRoutePageState extends State<RegionRoutePage> {
                   if (item.isPurchased && item.purchasedBy != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        'Đã mua bởi: ${item.purchasedBy!.displayName}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.tetRed.withValues(alpha: 0.7),
-                          fontStyle: FontStyle.italic,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: Builder(builder: (_) {
+                        final isSelf = currentUserId != null &&
+                            item.purchasedBy!.id.toString() == currentUserId;
+                        final buyerLabel = isSelf ? 'Bạn' : item.purchasedBy!.displayName;
+                        return Text(
+                          'Đã mua bởi: $buyerLabel',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.tetRed.withValues(alpha: 0.7),
+                            fontStyle: FontStyle.italic,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }),
                     ),
                 ],
               ),

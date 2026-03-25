@@ -11,7 +11,6 @@ class ApiClient {
   static String get _effectiveBaseUrl {
     if (_baseUrl != 'http://localhost:8080') return _baseUrl;
     
-    // Fallback logic for localhost on different platforms if not provided via env
     if (kIsWeb) return 'http://localhost:8080';
     if (Platform.isAndroid) return 'http://10.0.2.2:8080';
     return 'http://localhost:8080';
@@ -20,7 +19,6 @@ class ApiClient {
   final Dio dio;
   String? _accessToken;
 
-  // Callbacks for AuthViewModel to handle storage and state
   Future<String?> Function()? getRefreshToken;
   Future<void> Function(String accessToken, String? refreshToken)? onTokenRefreshed;
   VoidCallback? onLogout;

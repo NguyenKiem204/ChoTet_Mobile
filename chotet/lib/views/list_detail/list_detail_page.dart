@@ -4,6 +4,7 @@ import 'package:chotet/domain/entities/shopping_list.dart';
 import 'package:chotet/themes/design_system.dart';
 import 'package:chotet/viewmodels/list_detail_viewmodel.dart';
 import 'package:chotet/viewmodels/home_viewmodel.dart';
+import 'package:chotet/viewmodels/auth_viewmodel.dart';
 import 'package:chotet/data/services/shopping_service.dart';
 import 'package:chotet/views/widgets/molecules/shopping_item_tile.dart';
 import 'package:chotet/views/add_item/add_item_page.dart';
@@ -91,6 +92,7 @@ class ListDetailPage extends StatelessWidget {
                                         },
                                         child: ShoppingItemTile(
                                           item: item,
+                                          currentUserId: Provider.of<AuthViewModel>(context, listen: false).user?.id?.toString(),
                                           onToggle: () => viewModel.toggleItemPurchase(item.id),
                                           onTap: () {
                                             showModalBottomSheet(
@@ -230,11 +232,18 @@ class ListDetailPage extends StatelessWidget {
                     IconButton(
                       icon: const Icon(Icons.share_outlined, color: Colors.white, size: 22),
                       onPressed: () {
+                        final currentUserId = Provider.of<AuthViewModel>(context, listen: false)
+                            .user
+                            ?.id
+                            ?.toString();
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
                           backgroundColor: Colors.transparent,
-                          builder: (_) => ShareListDialog(viewModel: viewModel),
+                          builder: (_) => ShareListDialog(
+                            viewModel: viewModel,
+                            currentUserId: currentUserId,
+                          ),
                         );
                       },
                     ),
